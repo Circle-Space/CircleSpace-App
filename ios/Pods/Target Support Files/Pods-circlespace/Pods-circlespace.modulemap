@@ -1,0 +1,6 @@
+framework module Pods_circlespace {
+  umbrella header "Pods-circlespace-umbrella.h"
+
+  export *
+  module * { export * }
+}

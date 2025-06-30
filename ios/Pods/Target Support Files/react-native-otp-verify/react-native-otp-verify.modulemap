@@ -1,0 +1,6 @@
+framework module react_native_otp_verify {
+  umbrella header "react-native-otp-verify-umbrella.h"
+
+  export *
+  module * { export * }
+}

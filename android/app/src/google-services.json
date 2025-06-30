@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "29700312227",
+    "project_id": "cs-web-app-472df",
+    "storage_bucket": "cs-web-app-472df.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:29700312227:android:66774e483add1a4d2d4316",
+        "android_client_info": {
+          "package_name": "com.circlespace.in"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDQTzW-DVXKDJlXrZ_OGMz-aKgFZuKhvy8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
