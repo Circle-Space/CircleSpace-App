@@ -69,6 +69,7 @@ interface NotificationListProps {
   onRefresh?: () => void;
   navigation?: any;
   onUnreadCountChange?: (count: number) => void;
+  onScroll?: (event: any) => void;
 }
 
 // Memoized notification wrapper component
@@ -120,7 +121,8 @@ const NOTIFICATION_COMPONENTS = {
 const NotificationList: React.FC<NotificationListProps> = ({
   refreshing: externalRefreshing, 
   onRefresh: externalOnRefresh, 
-  onUnreadCountChange
+  onUnreadCountChange,
+  onScroll
 }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
@@ -454,6 +456,8 @@ const NotificationList: React.FC<NotificationListProps> = ({
         keyExtractor={keyExtractor}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.3}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

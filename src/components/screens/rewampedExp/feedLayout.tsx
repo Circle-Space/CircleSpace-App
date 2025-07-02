@@ -27,6 +27,7 @@ import { post, del } from '../../../services/dataRequest';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SkeletonFeedCard from '../../commons/SkeletonFeedCard';
 import { setCurrentPostAuthor } from '../../../redux/reducers/chatSlice';
+import { useBottomBarScroll } from '../../../hooks/useBottomBarScroll';
 
 type RootStackParamList = {
   PostDetail: {
@@ -96,7 +97,7 @@ interface FeedLayoutProps {
   fabComponent?: React.ReactNode;
   initialLoading?: boolean;
   onItemClick?: (item: any) => void;
-  onScroll?: () => void;
+  onScroll?: (event?: any) => void;
   showIcons?: boolean;
   onTouchStart?: () => void;
 }
@@ -145,6 +146,7 @@ const FeedLayout: React.FC<FeedLayoutProps> = ({
   const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false);
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [isDataReady, setIsDataReady] = useState(data.length > 0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const listRef = useRef<FlashList<any>>(null);
   const dispatch = useDispatch();
@@ -153,7 +155,26 @@ const FeedLayout: React.FC<FeedLayoutProps> = ({
   const likedPosts = useSelector((state: RootState) => state.like.likedPosts);
   const likeCounts = useSelector((state: RootState) => state.like.likeCounts);
   const savedPosts = useSelector((state: RootState) => state.save.SavedPosts);
-  const dipstach = useDispatch()
+  const dipstach = useDispatch();
+  
+  // Get the refresh state management from the hook
+  const { setRefreshState } = useBottomBarScroll();
+
+  // Handle refresh with bottom bar state management
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    setRefreshState(true);
+    
+    try {
+      if (onRefresh) {
+        await onRefresh();
+      }
+    } finally {
+      setIsRefreshing(false);
+      setRefreshState(false);
+    }
+  }, [onRefresh, setRefreshState]);
+
   // Update local data and data ready state when props data changes
   React.useEffect(() => {
     setLocalData(data);
@@ -751,8 +772,8 @@ const FeedLayout: React.FC<FeedLayoutProps> = ({
           renderItem={renderItem}
           keyExtractor={(item) => item._id}
           estimatedItemSize={itemWidth}
-          onRefresh={onRefresh}
-          refreshing={false}
+          onRefresh={handleRefresh}
+          refreshing={isRefreshing}
           onEndReached={onLoadMore}
           onEndReachedThreshold={0.5}
           numColumns={2}

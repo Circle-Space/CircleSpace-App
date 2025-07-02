@@ -19,8 +19,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../../redux/store';
 import CustomFAB from '../commons/customFAB';
 import SharePostToChat from '../screens/Home/SharePostToChat';
-import messageIcon from '../../assets/icons/messageicon.png';
-import calendarIcon from '../../assets/icons/calendaricon.png';
+import { useBottomBarScroll } from '../../hooks/useBottomBarScroll';
 
 const { width } = Dimensions.get('window');
 
@@ -46,7 +45,6 @@ type Review = {
 
 const BusinessPageScreen: React.FC<BusinessPageScreenProps> = ({ route }) => {
   const { isSelf, userId } = route.params;
-  console.log("king 100 ::", isSelf);
   const navigation = useNavigation();
   const [selectedTab, setSelectedTab] = useState<'posts' | 'saved'>('posts');
   const [aboutExpanded, setAboutExpanded] = useState(false);
@@ -60,6 +58,9 @@ const BusinessPageScreen: React.FC<BusinessPageScreenProps> = ({ route }) => {
   const [openShare, setOpenShare] = useState(false);
   console.log("king 100 ::", token);
   const [lastScrollTime, setLastScrollTime] = useState(0);
+
+  // Add bottom bar scroll handler
+  const { handleScroll: handleBottomBarScroll } = useBottomBarScroll();
 
   // Add token fetching
   useEffect(() => {
@@ -217,14 +218,17 @@ const BusinessPageScreen: React.FC<BusinessPageScreenProps> = ({ route }) => {
     }, [])
   );
 
-  const handleScroll = useCallback(() => {
+  const handleScroll = useCallback((event: any) => {
     const currentTime = Date.now();
     // Only close FAB if it's been more than 500ms since last scroll
     if (isFabOpen && currentTime - lastScrollTime > 500) {
       setIsFabOpen(false);
     }
     setLastScrollTime(currentTime);
-  }, [isFabOpen, lastScrollTime]);
+    
+    // Handle bottom bar scroll
+    handleBottomBarScroll(event);
+  }, [isFabOpen, lastScrollTime, handleBottomBarScroll]);
 
   const handleScreenPress = () => {
     if (isFabOpen) {
@@ -321,7 +325,6 @@ const BusinessPageScreen: React.FC<BusinessPageScreenProps> = ({ route }) => {
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         onTouchStart={handleScreenPress}
-        contentContainerStyle={{ paddingBottom: 120 }}
       >
         <Header
           isSelf={isSelf}
@@ -434,20 +437,6 @@ const BusinessPageScreen: React.FC<BusinessPageScreenProps> = ({ route }) => {
         setOpenShare={setOpenShare}
         isProfile={true}
       />
-
-      {/* Sticky Bottom Button Bar */}
-      {!isSelf && (
-      <View style={styles.bottomButtonBar} pointerEvents="box-none">
-        <TouchableOpacity style={styles.inquiryButton} onPress={() => navigation.navigate('InquiryForm')}>
-          <Image source={messageIcon} style={{ width: 20, height: 20, marginRight: 6, resizeMode: 'contain' }} />
-          <Text style={styles.inquiryButtonText}>Send Inquiry</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.appointmentButton}>
-          <Image source={calendarIcon} style={{ width: 20, height: 20, marginRight: 6, resizeMode: 'contain' }} />
-          <Text style={styles.appointmentButtonText}>Book Appointment</Text>
-        </TouchableOpacity>
-      </View>
-      )}
     </SafeAreaView>
   );
 };
@@ -586,53 +575,5 @@ const styles = StyleSheet.create({
     color: Color.primarygrey,
     marginTop: 20,
     marginBottom: 20,
-  },
-  // Sticky Bottom Button Bar Styles
-  bottomButtonBar: {
-    backgroundColor: '#FFF',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 15,
-    width: '100%',
-    borderTopWidth: 1,
-    borderTopColor: '#F3F3F3',
-  },
-  inquiryButton: {
-    width: '40%',
-    height: 46,
-    borderRadius: 8,
-    backgroundColor: '#000',
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'row',
-  },
-  inquiryButtonText: {
-    color: '#fff',
-    fontFamily: 'Poppins',
-    fontWeight: '600',
-    fontSize: 12,
-    lineHeight: 14,
-    letterSpacing: 0,
-  },
-  appointmentButton: {
-    width: '40%',
-    height: 46,
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#EAEAEA',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 10,
-    flexDirection: 'row',
-  },
-  appointmentButtonText: {
-    color: '#000',
-    fontFamily: 'Poppins',
-    fontWeight: '600',
-    fontSize: 12,
-    lineHeight: 14,
-    letterSpacing: 0,
   },
 }); 
