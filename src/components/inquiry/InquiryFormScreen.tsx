@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, TextInput, ScrollView, Image, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, TextInput, ScrollView, Image, SafeAreaView, Platform } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import BackButton from '../commons/customBackHandler';
 import { Color } from '../../styles/constants';
@@ -178,7 +178,7 @@ const InquiryFormScreen = ({ navigation }: InquiryFormScreenProps) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', paddingTop: 0 },
+  container: { flex: 1, backgroundColor: '#fff', paddingTop: Platform.OS === 'ios' ? 0 : 50 },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
