@@ -20,6 +20,8 @@ import { RootState } from '../../redux/store';
 import CustomFAB from '../commons/customFAB';
 import SharePostToChat from '../screens/Home/SharePostToChat';
 import { useBottomBarScroll } from '../../hooks/useBottomBarScroll';
+import messageIcon from '../../assets/icons/messageicon.png';
+import calendarIcon from '../../assets/icons/calendaricon.png';
 
 const { width } = Dimensions.get('window');
 
@@ -437,6 +439,19 @@ const BusinessPageScreen: React.FC<BusinessPageScreenProps> = ({ route }) => {
         setOpenShare={setOpenShare}
         isProfile={true}
       />
+
+{!isSelf && (
+      <View style={styles.bottomButtonBar} pointerEvents="box-none">
+        <TouchableOpacity style={styles.inquiryButton} onPress={() => navigation.navigate('InquiryForm')}>
+          <Image source={messageIcon} style={{ width: 20, height: 20, marginRight: 6, resizeMode: 'contain' }} />
+          <Text style={styles.inquiryButtonText}>Send Inquiry</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.appointmentButton}>
+          <Image source={calendarIcon} style={{ width: 20, height: 20, marginRight: 6, resizeMode: 'contain' }} />
+          <Text style={styles.appointmentButtonText}>Book Appointment</Text>
+        </TouchableOpacity>
+      </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -575,5 +590,52 @@ const styles = StyleSheet.create({
     color: Color.primarygrey,
     marginTop: 20,
     marginBottom: 20,
+  },
+  bottomButtonBar: {
+    backgroundColor: '#FFF',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 15,
+    width: '100%',
+    borderTopWidth: 1,
+    borderTopColor: '#F3F3F3',
+  },
+  inquiryButton: {
+    width: '40%',
+    height: 46,
+    borderRadius: 8,
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+  inquiryButtonText: {
+    color: '#fff',
+    fontFamily: 'Poppins',
+    fontWeight: '600',
+    fontSize: 12,
+    lineHeight: 14,
+    letterSpacing: 0,
+  },
+  appointmentButton: {
+    width: '40%',
+    height: 46,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#EAEAEA',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 10,
+    flexDirection: 'row',
+  },
+  appointmentButtonText: {
+    color: '#000',
+    fontFamily: 'Poppins',
+    fontWeight: '600',
+    fontSize: 12,
+    lineHeight: 14,
+    letterSpacing: 0,
   },
 }); 
