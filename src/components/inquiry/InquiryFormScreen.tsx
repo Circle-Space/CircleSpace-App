@@ -141,6 +141,7 @@ const InquiryFormScreen = ({ navigation }: InquiryFormScreenProps) => {
               value={answers[step]}
               onChangeText={handleTextChange}
               placeholderTextColor="#656565"
+              textAlignVertical="top"
             />
           )}
           {current.type === 'textinput' && (
@@ -238,10 +239,11 @@ const styles = StyleSheet.create({
   },
   questionBlock: { marginBottom: 32, marginHorizontal: 24 },
   questionText: {
-    fontFamily: 'Poppins',
+
+    fontFamily: Platform.OS === 'android' ? 'Poppins-SemiBold' : 'Poppins',
     fontWeight: '600',
     fontSize: 15,
-    lineHeight: 15,
+    // lineHeight: 15,
     letterSpacing: 0,
     color: '#111',
     marginBottom: 18,
