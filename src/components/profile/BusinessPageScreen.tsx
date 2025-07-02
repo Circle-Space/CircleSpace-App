@@ -19,6 +19,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../../redux/store';
 import CustomFAB from '../commons/customFAB';
 import SharePostToChat from '../screens/Home/SharePostToChat';
+import { useBottomBarScroll } from '../../hooks/useBottomBarScroll';
 
 const { width } = Dimensions.get('window');
 
@@ -57,6 +58,9 @@ const BusinessPageScreen: React.FC<BusinessPageScreenProps> = ({ route }) => {
   const [openShare, setOpenShare] = useState(false);
   console.log("king 100 ::", token);
   const [lastScrollTime, setLastScrollTime] = useState(0);
+
+  // Add bottom bar scroll handler
+  const { handleScroll: handleBottomBarScroll } = useBottomBarScroll();
 
   // Add token fetching
   useEffect(() => {
@@ -214,14 +218,17 @@ const BusinessPageScreen: React.FC<BusinessPageScreenProps> = ({ route }) => {
     }, [])
   );
 
-  const handleScroll = useCallback(() => {
+  const handleScroll = useCallback((event: any) => {
     const currentTime = Date.now();
     // Only close FAB if it's been more than 500ms since last scroll
     if (isFabOpen && currentTime - lastScrollTime > 500) {
       setIsFabOpen(false);
     }
     setLastScrollTime(currentTime);
-  }, [isFabOpen, lastScrollTime]);
+    
+    // Handle bottom bar scroll
+    handleBottomBarScroll(event);
+  }, [isFabOpen, lastScrollTime, handleBottomBarScroll]);
 
   const handleScreenPress = () => {
     if (isFabOpen) {

@@ -25,6 +25,7 @@ import { Color, FontFamilies, FontSizes } from '../../styles/constants';
 import { ScaledSheet, scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GetStartedModal from '../commons/getStartedModal';
+import { useBottomBarScroll } from '../../hooks/useBottomBarScroll';
 
 const Events = ({navigation}) => {
   const route = useRoute();
@@ -44,6 +45,7 @@ const Events = ({navigation}) => {
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const searchInputRef = useRef<TextInput>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const { handleScroll: handleBottomBarScroll } = useBottomBarScroll();
   const selectedCity = route?.params?.selectedCity || null;
   const selectedDate = route?.params?.selectedDate || null;
 
@@ -208,8 +210,9 @@ const Events = ({navigation}) => {
   // Check if any filter is applied
   const isFilterApplied = selectedCity || selectedDate;
 
-  const handleScroll = () => {
+  const handleScroll = (event: any) => {
     Keyboard.dismiss();
+    handleBottomBarScroll(event);
   };
 
   const clearSearch = () => {
@@ -439,7 +442,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    paddingBottom: 40,
+    // paddingBottom: 40,
     paddingTop:10,
     paddingHorizontal: 15,
   },

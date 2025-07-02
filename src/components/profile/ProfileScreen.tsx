@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontFamilies, Color } from '../../styles/constants';
 import CustomFAB from '../commons/customFAB';
 import SharePostToChat from '../screens/Home/SharePostToChat';
+import { useBottomBarScroll } from '../../hooks/useBottomBarScroll';
 
 const { width } = Dimensions.get('window');
 
@@ -49,6 +50,10 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
   const [isFabOpen, setIsFabOpen] = useState(false);
   const [openShare, setOpenShare] = useState(false);
   const [lastScrollTime, setLastScrollTime] = useState(0);
+  
+  // Add bottom bar scroll handler
+  const { handleScroll: handleBottomBarScroll } = useBottomBarScroll();
+  
   useFocusEffect(
     useCallback(() => {
       const initializeProfile = async () => {
@@ -107,14 +112,17 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ route }) => {
       setIsFabOpen(false);
     }, [])
   );
-  const handleScroll = useCallback(() => {
+  const handleScroll = useCallback((event: any) => {
     const currentTime = Date.now();
     // Only close FAB if it's been more than 500ms since last scroll
     if (isFabOpen && currentTime - lastScrollTime > 500) {
       setIsFabOpen(false);
     }
     setLastScrollTime(currentTime);
-  }, [isFabOpen, lastScrollTime]);
+    
+    // Handle bottom bar scroll
+    handleBottomBarScroll(event);
+  }, [isFabOpen, lastScrollTime, handleBottomBarScroll]);
 
   const handleScreenPress = () => {
     if (isFabOpen) {

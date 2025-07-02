@@ -19,8 +19,9 @@ interface NotificationsProps {
   refreshing?: boolean;
   onRefresh?: () => void;
   onUnreadCountChange?: (count: number) => void;
+  onScroll?: (event: any) => void;
 }
-const Notifications: React.FC<NotificationsProps> = ({navigation, route, refreshing, onRefresh, onUnreadCountChange}) => {
+const Notifications: React.FC<NotificationsProps> = ({navigation, route, refreshing, onRefresh, onUnreadCountChange, onScroll}) => {
   return (
     <SafeAreaView>
       <View
@@ -40,6 +41,7 @@ const Notifications: React.FC<NotificationsProps> = ({navigation, route, refresh
           onRefresh={onRefresh} 
           navigation={navigation} 
           onUnreadCountChange={onUnreadCountChange}
+          onScroll={onScroll}
         />
       </View>
     </SafeAreaView>

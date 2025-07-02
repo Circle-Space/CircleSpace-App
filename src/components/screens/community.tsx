@@ -26,6 +26,7 @@ import { moderateScale } from 'react-native-size-matters';
 import { Line } from 'react-native-svg';
 import GetStartedModal from '../commons/getStartedModal';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useBottomBarScroll } from '../../hooks/useBottomBarScroll';
 
 const Community = () => {
   const navigation = useNavigation();
@@ -33,6 +34,7 @@ const Community = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categories, setCategories] = useState([]);
   const [accountType, setAccountType] = useState('');
+  const { handleScroll } = useBottomBarScroll();
   const [isPaid, setIsPaid] = useState(false);
   const [loginModalVisible, setLoginModalVisible] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -278,6 +280,7 @@ const Community = () => {
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.mainScrollContent}
               bounces={false}
+              onScroll={handleScroll}
               onScrollBeginDrag={() => {
                 if (isSearchVisible) {
                   setIsSearchVisible(false);

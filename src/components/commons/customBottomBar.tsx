@@ -12,10 +12,12 @@ import {
   Dimensions,
   ViewStyle,
   TouchableOpacity,
+  Animated,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import type {BottomTabNavigationOptions} from '@react-navigation/bottom-tabs';
+import {BlurView} from '@react-native-community/blur';
 import Community from '../screens/community';
 import Jobs from '../screens/jobs/jobs';
 import Events from '../screens/events';
@@ -48,7 +50,114 @@ import BusinessPageScreen from '../profile/BusinessPageScreen';
 import routes from '../../constants/routes';
 import NotificationDebugPanel from '../debug/NotificationDebugPanel';
 import PostDetailRewamped from '../screens/rewampedScreens/postDetailRewamped';
+import {BottomTabBarProps} from '@react-navigation/bottom-tabs';
+
 const Tab = createBottomTabNavigator();
+
+const TAB_WIDTH = 140; 
+
+
+// Icon and label mapping for tabs
+const tabIcons: { [key: string]: { active: any; inactive: any } } = {
+  FeedWall2: {
+    active: require('../../assets/bottombarIcons/activeHomeIcon.png'),
+    inactive: require('../../assets/bottombarIcons/homeInactive.png'),
+  },
+  Community: {
+    active: require('../../assets/bottombarIcons/activeProfessionalIcon.png'),
+    inactive: require('../../assets/bottombarIcons/TheCIRCLE.png'),
+  },
+  Events: {
+    active: require('../../assets/bottombarIcons/activeEventsIcon.png'),
+    inactive: require('../../assets/bottombarIcons/eventsInactive.png'),
+  },
+  Notifications: {
+    active: require('../../assets/bottombarIcons/notificationBlack.png'),
+    inactive: require('../../assets/bottombarIcons/notificationBorder.png'),
+  },
+  ProfileScreen: {
+    active: require('../../assets/bottombarIcons/activeProfileIcon.png'),
+    inactive: require('../../assets/bottombarIcons/profileInactive.png'),
+  },
+};
+const tabLabels: { [key: string]: string } = {
+  FeedWall2: 'Home',
+  Community: 'Professionals',
+  Events: 'Events',
+  Notifications: 'Notification',
+  ProfileScreen: 'Profile',
+};
+
+// Custom Tab Bar Component
+function CustomTabBar({ state, descriptors, navigation, bottomBarAnimation }: BottomTabBarProps & { bottomBarAnimation: Animated.Value }) {
+  return (
+    <Animated.View 
+      style={[
+        styles.customTabBarContainer,
+        {
+          transform: [{
+            translateY: bottomBarAnimation.interpolate({
+              inputRange: [0, 1],
+              outputRange: [100, 0], // Slide up from bottom when hidden
+            })
+          }],
+          opacity: bottomBarAnimation,
+        }
+      ]}
+    >
+      <BlurView
+        style={styles.blurBackground}
+        blurType="light"
+        blurAmount={10}
+        reducedTransparencyFallbackColor="rgba(255, 255, 255, 0.6)"
+      />
+      <View style={styles.overlay} />
+      <View style={styles.customTabBar}>
+        {state.routes.map((route, index) => {
+          const isFocused = state.index === index;
+          const onPress = () => {
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate(route.name);
+            }
+          };
+          if (isFocused) {
+            return (
+              <TouchableOpacity
+                key={route.key}
+                accessibilityRole="button"
+                accessibilityState={isFocused ? { selected: true } : {}}
+                onPress={onPress}
+                style={styles.activeTab}
+                activeOpacity={0.8}
+              >
+                <Image source={tabIcons[route.name]?.active || tabIcons[route.name]?.inactive} style={styles.activeIcon} />
+                <Text style={styles.activeLabel}>{tabLabels[route.name]}</Text>
+              </TouchableOpacity>
+            );
+          } else {
+            return (
+              <TouchableOpacity
+                key={route.key}
+                accessibilityRole="button"
+                accessibilityState={isFocused ? { selected: true } : {}}
+                onPress={onPress}
+                style={styles.inactiveTab}
+                activeOpacity={0.8}
+              >
+                <Image source={tabIcons[route.name]?.inactive} style={styles.inactiveIcon} />
+              </TouchableOpacity>
+            );
+          }
+        })}
+      </View>
+    </Animated.View>
+  );
+}
 
 const CustomBottomBar = () => {
   const [active, setActive] = useState<string>('Home');
@@ -62,6 +171,16 @@ const CustomBottomBar = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
+  // Scroll-based visibility state
+  const [isBottomBarVisible, setIsBottomBarVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+  const [scrollDirection, setScrollDirection] = useState<'up' | 'down'>('up');
+  const bottomBarAnimation = useRef(new Animated.Value(1)).current;
+  
+  // Add state to track pull-to-refresh
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshStartY, setRefreshStartY] = useState(0);
+
   // Track if we're currently fetching data to prevent duplicate calls
   const [isFetchingData, setIsFetchingData] = useState(false);
 
@@ -71,6 +190,89 @@ const CustomBottomBar = () => {
     ios: screenHeight * 0.09, // 9% of the screen height for iOS
     android: screenHeight * 0.1, // Slightly reduced for Android
   });
+
+  // Scroll event listener for bottom bar visibility
+  useEffect(() => {
+    const handleScroll = (event: any) => {
+      const currentScrollY = event.nativeEvent.contentOffset.y;
+      const direction = currentScrollY > lastScrollY ? 'down' : 'up';
+      
+      // Detect pull-to-refresh gesture (negative scroll values on iOS)
+      const isPullToRefresh = currentScrollY < 0;
+      
+      // If this is a pull-to-refresh gesture, don't hide the bottom bar
+      if (isPullToRefresh) {
+        // Ensure bottom bar is visible during refresh
+        if (!isBottomBarVisible) {
+          setIsBottomBarVisible(true);
+          Animated.timing(bottomBarAnimation, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+          }).start();
+        }
+        return;
+      }
+      
+      // Only trigger animation if scroll difference is significant and not during refresh
+      if (Math.abs(currentScrollY - lastScrollY) > 10 && !isRefreshing) {
+        setScrollDirection(direction);
+        setLastScrollY(currentScrollY);
+        
+        if (direction === 'down' && isBottomBarVisible) {
+          // Hide bottom bar when scrolling down
+          setIsBottomBarVisible(false);
+          Animated.timing(bottomBarAnimation, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }).start();
+        } else if (direction === 'up' && !isBottomBarVisible) {
+          // Show bottom bar when scrolling up
+          setIsBottomBarVisible(true);
+          Animated.timing(bottomBarAnimation, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+          }).start();
+        }
+      }
+    };
+
+    // Add global scroll event listener
+    const addScrollListener = () => {
+      // This will be handled by individual screens
+      (global as any).handleScrollForBottomBar = handleScroll;
+    };
+
+    addScrollListener();
+
+    return () => {
+      // Cleanup
+      delete (global as any).handleScrollForBottomBar;
+    };
+  }, [lastScrollY, isBottomBarVisible, bottomBarAnimation, isRefreshing]);
+
+  // Add global refresh state management
+  useEffect(() => {
+    // Set up global refresh state handlers
+    (global as any).setRefreshState = (refreshing: boolean) => {
+      setIsRefreshing(refreshing);
+      if (refreshing) {
+        // Ensure bottom bar is visible when refresh starts
+        setIsBottomBarVisible(true);
+        Animated.timing(bottomBarAnimation, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }).start();
+      }
+    };
+
+    return () => {
+      delete (global as any).setRefreshState;
+    };
+  }, [bottomBarAnimation]);
 
   // Function to fetch all data - moved to a standalone function for reuse
   const fetchAllData = useCallback(async () => {
@@ -202,9 +404,11 @@ const CustomBottomBar = () => {
       left: 0,
       height: bottomBarHeight,
       elevation: 0,
-      backgroundColor: '#fff',
+      backgroundColor: 'transparent',
+      borderTopLeftRadius: 34,
+      borderTopRightRadius: 34, 
       borderTopWidth: 1,
-      borderTopColor: '#f1f1f1',
+      borderTopColor: 'rgba(241, 241, 241, 0.3)',
       paddingTop: Platform.select({
         ios: 10,
         android: 5,
@@ -305,10 +509,34 @@ const CustomBottomBar = () => {
       navigation.navigate(routes.chats as never);
     }
   };
+
+  const renderTabIcon = (
+    tabName: string,
+    label: string
+  ) => {
+    const isActive = active === tabName;
+    const icons = tabIcons[tabName];
+    
+    if (isActive) {
+      return (
+        <View style={styles.activeTabContainer}>
+          <Image source={icons?.active || icons?.inactive} style={styles.tabIcon} />
+          <Text style={styles.tabLabel}>{label}</Text>
+        </View>
+      );
+    }
+    return (
+      <View style={styles.inactiveTabContainer}>
+        <Image source={icons?.inactive} style={styles.tabIcon} />
+      </View>
+    );
+  };
+
   return (
     <>
     {/* <NotificationDebugPanel visible={__DEV__} /> */}
       <Tab.Navigator
+        tabBar={props => <CustomTabBar {...props} bottomBarAnimation={bottomBarAnimation} />}
         screenOptions={screenOptions}
         screenListeners={{
           state: e => {
@@ -431,34 +659,13 @@ const CustomBottomBar = () => {
         {/* new experiemtn screen */}
         <Tab.Screen
           name="FeedWall2"
-          // component={Home}
           component={FeedWallExp}
           options={{
-            tabBarIcon: ({focused}) => (
-              <View>
-                <View
-                  style={[
-                    styles.container,
-                    active === 'FeedWall2' && styles.activeBar,
-                  ]}>
-                  <Image
-                    source={
-                      active === 'FeedWall2'
-                        ? require('../../assets/bottombarIcons/homeActive.png')
-                        : require('../../assets/bottombarIcons/homeInactive.png')
-                    }
-                    style={styles.image}
-                  />
-                </View>
-                <Text
-                  style={[
-                    styles.textStyle,
-                    active === 'FeedWall2' && styles.textStyle,
-                  ]}>
-                  Home
-                </Text>
-              </View>
-            ),
+            tabBarIcon: () =>
+              renderTabIcon(
+                'FeedWall2',
+                'Home'
+              ),
             headerLeft: () => <QuizRoute />,
             headerRight: () => (
               <View
@@ -511,31 +718,11 @@ const CustomBottomBar = () => {
           // component={isPaid ? Community : DiscoverTeamScreen}
           // component={DiscoverTeamScreen}
           options={{
-            tabBarIcon: ({focused}) => (
-              <View>
-                <View
-                  style={[
-                    styles.container,
-                    active === 'Community' && styles.activeBar,
-                  ]}>
-                  <Image
-                    source={
-                      active === 'Community'
-                        ? require('../../assets/bottombarIcons/TheCIRCLEWhite.png')
-                        : require('../../assets/bottombarIcons/TheCIRCLE.png')
-                    }
-                    style={styles.image}
-                  />
-                </View>
-                <Text
-                  style={[
-                    styles.textStyle,
-                    active === 'Community' && styles.textStyle,
-                  ]}>
-                  Professionals
-                </Text>
-              </View>
-            ),
+            tabBarIcon: () =>
+              renderTabIcon(
+                'Community',
+                'Professionals'
+              ),
             headerShown: false,
             headerLeft: () => <QuizRoute />,
             headerTitleAlign: 'center',
@@ -559,31 +746,11 @@ const CustomBottomBar = () => {
           name="Events"
           component={Events}
           options={{
-            tabBarIcon: ({focused}) => (
-              <View>
-                <View
-                  style={[
-                    styles.container,
-                    active === 'Events' && styles.activeBar,
-                  ]}>
-                  <Image
-                    source={
-                      active === 'Events'
-                        ? require('../../assets/bottombarIcons/eventsActive.png')
-                        : require('../../assets/bottombarIcons/eventsInactive.png')
-                    }
-                    style={styles.image}
-                  />
-                </View>
-                <Text
-                  style={[
-                    styles.textStyle,
-                    active === 'Events' && styles.textStyle,
-                  ]}>
-                  Events
-                </Text>
-              </View>
-            ),
+            tabBarIcon: () =>
+              renderTabIcon(
+                'Events',
+                'Events'
+              ),
             headerShown: false,
             headerLeft: () => <QuizRoute />,
             headerTitle: 'Events',
@@ -709,46 +876,10 @@ const CustomBottomBar = () => {
             name="Notifications"
             component={NotificationsScreen}
             options={{
-              tabBarIcon: ({focused}) => (
-                <View>
-                  <View
-                    style={[
-                      styles.container,
-                      active === 'Notifications' && styles.activeBar,
-                    ]}>
-                    <Image
-                      source={
-                        active === 'Notifications'
-                          ? require('../../assets/bottombarIcons/notificationWhite.png')
-                          : require('../../assets/bottombarIcons/notificationBorder.png')
-                      }
-                      style={styles.image}
-                    />
-                    {/* Notification badge */}
-                    {unreadNotifications > 0 && accountType !== 'temp' && (
-                      <View
-                        style={{
-                          position: 'absolute',
-                          right: 6,
-                          top: 5,
-                          backgroundColor: 'red',
-                          borderRadius: 6,
-                          width: 6,
-                          height: 6,
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                        }}
-                      />
-                    )}
-                  </View>
-                  <Text
-                    style={[
-                      styles.textStyle,
-                      active === 'Notifications' && styles.textStyle,
-                    ]}>
-                    Notification
-                  </Text>
-                </View>
+                          tabBarIcon: () =>
+              renderTabIcon(
+                'Notifications',
+                'Notification'
               ),
               headerShown: false,
               // headerLeft: () => <QuizRoute />,
@@ -916,31 +1047,11 @@ const CustomBottomBar = () => {
             }
             initialParams={{isSelf: true}}
             options={{
-              tabBarIcon: ({focused}) => (
-                <View>
-                  <View
-                    style={[
-                      styles.container,
-                      active === 'ProfileScreen' && styles.activeBar,
-                    ]}>
-                    <Image
-                      source={
-                        active === 'ProfileScreen'
-                          ? require('../../assets/bottombarIcons/profileActive.png')
-                          : require('../../assets/bottombarIcons/profileInactive.png')
-                      }
-                      style={styles.image}
-                    />
-                  </View>
-                  <Text
-                    style={[
-                      styles.textStyle,
-                      active === 'ProfileScreen' && styles.textStyle,
-                    ]}>
-                    {accountType === 'professional' ? 'Profile' : 'Profile'}
-                  </Text>
-                </View>
-              ),
+              tabBarIcon: () =>
+                renderTabIcon(
+                  'ProfileScreen',
+                  accountType === 'professional' ? 'Profile' : 'Profile'
+                ),
               headerShown: false,
               headerStyle: {
                 height: headerHeight,
@@ -971,14 +1082,14 @@ const CustomBottomBar = () => {
           />
           
         )}
-        <Tab.Screen
+        {/* <Tab.Screen
           name="PostDetailRewamped"
           component={PostDetailRewamped}
           options={{
             tabBarButton: () => null, // Hides the screen from the bottom tab bar
             headerShown: false, // Customize header as needed
           }}
-        />
+        /> */}
       </Tab.Navigator>
 
       {/* Render the GetStartedModal */}
@@ -1069,5 +1180,119 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     tintColor: Color.black,
+  },
+  tabWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activeTabContainer: {
+    width: TAB_WIDTH,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 30,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+    alignSelf: 'center',
+  },
+  inactiveTabContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 40,
+  },
+  tabIcon: {
+    width: 24,
+    height: 24,
+    marginRight: 8,
+  },
+  tabLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+  },
+  customTabBarContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopLeftRadius: 34,
+    borderTopRightRadius: 34,
+    overflow: 'hidden',
+  },
+  blurBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopLeftRadius: 34,
+    borderTopRightRadius: 34,
+  },
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderTopLeftRadius: 34,
+    borderTopRightRadius: 34,
+  },
+  customTabBar: {
+    flexDirection: 'row',
+    // backgroundColor: 'rgba(255,255,255,0.1)',
+    borderTopLeftRadius: 34,
+    borderTopRightRadius: 34,
+    paddingVertical: 20,
+    marginHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    elevation: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  activeTab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 30,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    marginHorizontal: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.02,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
+  },
+  inactiveTab: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 40,
+    marginHorizontal: 4,
+  },
+  activeIcon: {
+    width: 27,
+    height: 27,
+    marginRight: 8,
+  },
+  inactiveIcon: {
+    width: 27,
+    height: 27,
+  },
+  activeLabel: {
+    fontSize: FontSizes.small,
+    fontFamily: FontFamilies.medium,
+    color: Color.black,
   },
 });

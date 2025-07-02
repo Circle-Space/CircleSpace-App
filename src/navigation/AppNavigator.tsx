@@ -127,6 +127,8 @@ import BusinessDetailsStep2 from '../components/screens/auth/BusinessDetailsStep
 import BusinessDetailsStep3 from '../components/screens/auth/BusinessDetailsStep3';
 import BusinessDetailsStep4 from '../components/screens/auth/BusinessDetailsStep4';
 import BusinessListedSuccess from '../components/screens/auth/BusinessListedSuccess';
+import InquiryFormScreen from '../components/inquiry/InquiryFormScreen';
+import InquirySuccessScreen from '../components/inquiry/InquirySuccessScreen';
 
 const styles = StyleSheet.create({
   headerTitleStyle: {
@@ -1024,6 +1026,16 @@ const AppNavigator: React.FC<AppNavigatorProps> = ({
           animationEnabled: false,
           headerShown: false,
          }}
+      />
+      <Stack.Screen
+        name="InquiryForm"
+        component={InquiryFormScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="InquirySuccess"
+        component={InquirySuccessScreen}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );

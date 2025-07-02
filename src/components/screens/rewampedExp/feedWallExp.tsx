@@ -12,6 +12,7 @@ import { initializeSavedPosts } from '../../../redux/slices/saveSlice';
 import { initializeCommentCounts } from '../../../redux/slices/commentSlice';
 import { setFeedPosts, updatePostFollowStatus, syncFollowStatus } from '../../../redux/slices/feedSlice';
 import { RootState } from '../../../redux/store';
+import { useBottomBarScroll } from '../../../hooks/useBottomBarScroll';
 
 // Define the navigation stack params
 type RootStackParamList = {
@@ -408,6 +409,8 @@ const FeedWallExp = () => {
       }, [])
     );
 
+  const { handleScroll: handleBottomBarScroll } = useBottomBarScroll();
+  
   const handleScroll = useCallback(() => {
     const currentTime = Date.now();
     // Only close FAB if it's been more than 500ms since last scroll
@@ -416,6 +419,11 @@ const FeedWallExp = () => {
     }
     setLastScrollTime(currentTime);
   }, [isFabOpen, lastScrollTime]);
+
+  const handleScrollWithEvent = useCallback((event: any) => {
+    // Call the bottom bar scroll handler
+    handleBottomBarScroll(event);
+  }, [handleBottomBarScroll]);
 
   const handleFabToggle = () => {
     setIsFabOpen(prev => !prev);
@@ -443,8 +451,10 @@ const FeedWallExp = () => {
       hasMoreItems={hasMorePosts}
       initialLoading={initialLoading}
       showFAB={accountType === 'temp' ? false : true}
-      onScroll={handleScroll}
-      handleToggle={handleFabToggle}
+      onScroll={(event) => {
+        handleScroll();
+        handleScrollWithEvent(event);
+      }}
       onTouchStart={handleScreenPress}
       fabComponent={
         <CustomFAB
