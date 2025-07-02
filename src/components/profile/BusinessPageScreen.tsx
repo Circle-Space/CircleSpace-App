@@ -46,6 +46,7 @@ type Review = {
 
 const BusinessPageScreen: React.FC<BusinessPageScreenProps> = ({ route }) => {
   const { isSelf, userId } = route.params;
+  console.log("king 100 ::", isSelf);
   const navigation = useNavigation();
   const [selectedTab, setSelectedTab] = useState<'posts' | 'saved'>('posts');
   const [aboutExpanded, setAboutExpanded] = useState(false);
@@ -435,6 +436,7 @@ const BusinessPageScreen: React.FC<BusinessPageScreenProps> = ({ route }) => {
       />
 
       {/* Sticky Bottom Button Bar */}
+      {!isSelf && (
       <View style={styles.bottomButtonBar} pointerEvents="box-none">
         <TouchableOpacity style={styles.inquiryButton} onPress={() => navigation.navigate('InquiryForm')}>
           <Image source={messageIcon} style={{ width: 20, height: 20, marginRight: 6, resizeMode: 'contain' }} />
@@ -445,6 +447,7 @@ const BusinessPageScreen: React.FC<BusinessPageScreenProps> = ({ route }) => {
           <Text style={styles.appointmentButtonText}>Book Appointment</Text>
         </TouchableOpacity>
       </View>
+      )}
     </SafeAreaView>
   );
 };
