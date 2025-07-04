@@ -2,8 +2,8 @@ import AWS from "aws-sdk";
 
 const S3_BUCKET = "cs-production-storage";
 const REGION = "ap-south-1";
-const ACCESS_KEY = "AKIAU6GDZYODLC5QOLPX";
-const SECRET_KEY = "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";
+const ACCESS_KEY = "AKIAU6GDZYODGHPEKSGW";
+const SECRET_KEY = "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";
 AWS.config.update({
   accessKeyId: ACCESS_KEY,
   secretAccessKey: SECRET_KEY,
