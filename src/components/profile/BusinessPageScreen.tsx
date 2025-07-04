@@ -22,6 +22,8 @@ import SharePostToChat from '../screens/Home/SharePostToChat';
 import { useBottomBarScroll } from '../../hooks/useBottomBarScroll';
 import messageIcon from '../../assets/icons/messageicon.png';
 import calendarIcon from '../../assets/icons/calendaricon.png';
+import { generateChannelId, generateBusinessChannelId, generateBusinessChannelName, generateAppointmentChannelName } from '../../utils/videoCallUtils';
+import { getStaticChannelId } from '../../config/videoCall.config';
 
 const { width } = Dimensions.get('window');
 
@@ -442,11 +444,22 @@ const BusinessPageScreen: React.FC<BusinessPageScreenProps> = ({ route }) => {
 
 {!isSelf && (
       <View style={styles.bottomButtonBar} pointerEvents="box-none">
-        <TouchableOpacity style={styles.inquiryButton} onPress={() => navigation.navigate('InquiryForm')}>
+        <TouchableOpacity style={styles.inquiryButton} onPress={() => (navigation as any).navigate('InquiryForm')}>
           <Image source={messageIcon} style={{ width: 20, height: 20, marginRight: 6, resizeMode: 'contain' }} />
           <Text style={styles.inquiryButtonText}>Send Inquiry</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.appointmentButton}>
+        <TouchableOpacity style={styles.appointmentButton} onPress={() => {
+          // Use static channel ID so all users join the same channel
+          const channelId = getStaticChannelId(); // Static channel ID - same for everyone
+          
+          console.log('Joining static channel:', channelId); // Debug log
+          
+          (navigation as any).navigate('AgoraVideoCall', {
+            channelId: channelId, // Static channel ID - everyone joins channel "12345"
+            token: '',
+            uid: 0,
+          });
+        }}>
           <Image source={calendarIcon} style={{ width: 20, height: 20, marginRight: 6, resizeMode: 'contain' }} />
           <Text style={styles.appointmentButtonText}>Book Appointment</Text>
         </TouchableOpacity>

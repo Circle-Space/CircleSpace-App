@@ -116,6 +116,90 @@ export type RootStackParamList = {
     user: any;
     self: boolean;
   };
+  
+  // Video Call screens
+  AgoraVideoCall: {
+    channelId: string;
+    token?: string;
+    uid?: number;
+  };
+  VideoCallScreen: {
+    channelId?: string;
+    token?: string;
+    uid?: number;
+  };
+  VideoCallTest: undefined;
+  
+  // Settings and other screens
+  SettingPage: undefined;
+  Checkout: undefined;
+  PrivacySecurity: undefined;
+  SettingsReviews: undefined;
+  NotificationSetting: undefined;
+  CancelSubscriptionScreen: undefined;
+  RatingsAndReviews: undefined;
+  AddReview: undefined;
+  CancelSubscriptionConfirmationScreen: undefined;
+  AboutUsPage: undefined;
+  CheckoutScreen: undefined;
+  BusinessAccountDetails: undefined;
+  BusinessDetailsStep2: undefined;
+  BusinessDetailsStep3: undefined;
+  BusinessDetailsStep4: undefined;
+  BusinessListedSuccess: undefined;
+  JobDetail: undefined;
+  JobsScreen: undefined;
+  AddJobDetailFormOne: undefined;
+  addJobDetailFormTwo: undefined;
+  addJobDetailFormThree: undefined;
+  WebViewScreen: undefined;
+  finalJobFormPreview: undefined;
+  CityDateFilterScreen: undefined;
+  feedSearchScreen: undefined;
+  TagResultsScreen: undefined;
+  contactInfoForm: undefined;
+  ProfessionalDetailForm: undefined;
+  UserFinalReviewForm: undefined;
+  ApplySuccessScreen: undefined;
+  PDFViewer: undefined;
+  jobApplicants: undefined;
+  EditProfileForm: undefined;
+  EditBusinessPage: undefined;
+  SeeAllGallery: undefined;
+  filesUpload: undefined;
+  selectPeople: undefined;
+  UserPosted: undefined;
+  SinglePostView: undefined;
+  FollowingList: undefined;
+  AllCategories: undefined;
+  EventDetail: undefined;
+  ProfessionalsScreen: undefined;
+  FollowersList: undefined;
+  FindProfessionals: undefined;
+  FindServices: undefined;
+  ProjectsWorkingOn: undefined;
+  PlanToStart: undefined;
+  EstimatedBudget: undefined;
+  AreaOfProject: undefined;
+  FindingUsers: undefined;
+  UploadCatalog: undefined;
+  GetDrafts: undefined;
+  SavedDetailedLayout: undefined;
+  EditSpaces: undefined;
+  shareCollectionDetail: undefined;
+  SubscriptionScreen: undefined;
+  ViewBusinessProfile: undefined;
+  PremiumFeatures: undefined;
+  SpaceDetail: undefined;
+  FullScreenImageView: undefined;
+  ProfessionalDetailRewamped: undefined;
+  CouponScreen: undefined;
+  otherProfileScreen: undefined;
+  otherBusinessScreen: undefined;
+  PostDetailExp: undefined;
+  PDFViewerNative: undefined;
+  InquiryForm: undefined;
+  InquirySuccess: undefined;
 };
 
 // Define navigation prop types

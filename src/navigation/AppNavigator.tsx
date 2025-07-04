@@ -129,6 +129,10 @@ import BusinessDetailsStep4 from '../components/screens/auth/BusinessDetailsStep
 import BusinessListedSuccess from '../components/screens/auth/BusinessListedSuccess';
 import InquiryFormScreen from '../components/inquiry/InquiryFormScreen';
 import InquirySuccessScreen from '../components/inquiry/InquirySuccessScreen';
+import UserCard from '../components/agora/UserCard';
+import VideoCall from '../components/agora/VideoCall';
+import VideoCallScreen from '../components/screens/VideoCallScreen';
+import VideoCallTest from '../components/screens/VideoCallTest';
 
 const styles = StyleSheet.create({
   headerTitleStyle: {
@@ -934,6 +938,27 @@ const AppNavigator: React.FC<AppNavigatorProps> = ({
       <Stack.Screen
         name="EditPostRewamped"
         component={EditPostRewamped}
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="AgoraVideoCall"
+        component={VideoCall}
+        options={{
+          headerLeft: () => <BackButton />,
+        }}
+      />
+      <Stack.Screen
+        name="VideoCallScreen"
+        component={VideoCallScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="VideoCallTest"
+        component={VideoCallTest}
         options={{
           headerShown: false,
         }}

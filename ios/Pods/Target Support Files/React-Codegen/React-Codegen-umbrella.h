@@ -10,9 +10,17 @@
 #endif
 #endif
 
+#import "AgoraRtcNgSpec/AgoraRtcNgSpec.h"
+#import "AgoraRtcNgSpecJSI.h"
 #import "FBReactNativeSpec/FBReactNativeSpec.h"
 #import "FBReactNativeSpecJSI.h"
 #import "RCTModulesConformingToProtocolsProvider.h"
+#import "react/renderer/components/AgoraRtcNgSpec/ComponentDescriptors.h"
+#import "react/renderer/components/AgoraRtcNgSpec/EventEmitters.h"
+#import "react/renderer/components/AgoraRtcNgSpec/Props.h"
+#import "react/renderer/components/AgoraRtcNgSpec/RCTComponentViewHelpers.h"
+#import "react/renderer/components/AgoraRtcNgSpec/ShadowNodes.h"
+#import "react/renderer/components/AgoraRtcNgSpec/States.h"
 #import "react/renderer/components/rnblurview/ComponentDescriptors.h"
 #import "react/renderer/components/rnblurview/EventEmitters.h"
 #import "react/renderer/components/rnblurview/Props.h"
