@@ -27,6 +27,7 @@ interface ExtendedNotificationData {
   userId?: string;
   userName?: string;
   username?: string;
+  followerName?: string;
   isFollowing?: boolean;
   likedByUserId?: any;
   followerId?: string;
@@ -112,8 +113,7 @@ const FollowNotificationCard: React.FC<FollowNotificationCardProps> = ({
   const {
     followerId,
     profilePicture,
-    userName:username = "someone",
-    userName = "",
+    username,
     lastName = "",
     accountType,
   } = notification?.data || {};
@@ -122,25 +122,13 @@ const FollowNotificationCard: React.FC<FollowNotificationCardProps> = ({
 
   return (
     <Pressable
-      onPress={() => followerId && routeToProfile(followerId, accountType)}
+      onPress={() => followerId && accountType && routeToProfile(followerId, accountType)}
       style={{
-        width: '100%',
+        width: '90%',
         flexDirection: 'row',
         alignItems: 'center',
         gap: 10,
         alignSelf: 'center',
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 12,
-        marginBottom: 8,
-        shadowColor: '#000',
-        shadowOffset: {
-          width: 0,
-          height: 2,
-        },
-        shadowOpacity: 0.15,
-        shadowRadius: 6,
-        elevation: 6,
       }}>
       {profilePicture ? (
         <Image
@@ -178,8 +166,8 @@ const FollowNotificationCard: React.FC<FollowNotificationCardProps> = ({
           fontFamily: FontFamilies.medium,
           fontWeight: '400',
           fontSize: 13,
-          flex: 1,
-          minHeight: '65%',
+          maxWidth: '65%',
+          width: '60%',
           lineHeight: 18,
           color: "#111",
         }}>
@@ -188,7 +176,7 @@ const FollowNotificationCard: React.FC<FollowNotificationCardProps> = ({
             fontFamily: FontFamilies.semibold,
             fontWeight: '700',
           }}>
-          {username??notification?.data?.senderName}
+          {username || notification?.data?.followerName || "someone"}
         </Text>{' '}
         {notification?.message} 
         {'\n'}
@@ -206,7 +194,7 @@ const FollowNotificationCard: React.FC<FollowNotificationCardProps> = ({
         onPress={followUser}
         style={{
           backgroundColor: !isFollowing ? '#1E1E1E' : '#EBEBEB',
-          width: 70,
+          width: '26%',
           height: 36,
           justifyContent: 'center',
           alignItems: 'center',
