@@ -124,11 +124,23 @@ const FollowNotificationCard: React.FC<FollowNotificationCardProps> = ({
     <Pressable
       onPress={() => followerId && routeToProfile(followerId, accountType)}
       style={{
-        width: '90%',
+        width: '100%',
         flexDirection: 'row',
         alignItems: 'center',
         gap: 10,
         alignSelf: 'center',
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        padding: 12,
+        marginBottom: 8,
+        shadowColor: '#000',
+        shadowOffset: {
+          width: 0,
+          height: 2,
+        },
+        shadowOpacity: 0.15,
+        shadowRadius: 6,
+        elevation: 6,
       }}>
       {profilePicture ? (
         <Image
@@ -166,8 +178,8 @@ const FollowNotificationCard: React.FC<FollowNotificationCardProps> = ({
           fontFamily: FontFamilies.medium,
           fontWeight: '400',
           fontSize: 13,
-          maxWidth: '65%',
-          width: '60%',
+          flex: 1,
+          minHeight: '65%',
           lineHeight: 18,
           color: "#111",
         }}>
@@ -194,7 +206,7 @@ const FollowNotificationCard: React.FC<FollowNotificationCardProps> = ({
         onPress={followUser}
         style={{
           backgroundColor: !isFollowing ? '#1E1E1E' : '#EBEBEB',
-          width: '26%',
+          width: 70,
           height: 36,
           justifyContent: 'center',
           alignItems: 'center',

@@ -77,11 +77,8 @@ const NotificationCardWrapper = memo(({children, isRead}: {children: React.React
   return (
     <View style={{
       backgroundColor: isRead ? 'white' : '#F0F8FF',
-      paddingTop: 15,
-      paddingBottom: 15,
-      width: '100%',
-      paddingRight : 15,
-      marginBottom: 5,
+      width: '90%',
+      alignSelf: 'center',
     }}>
       {children}
     </View>

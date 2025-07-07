@@ -249,11 +249,23 @@ const LikedNotificationCard: React.FC<LikedNotificationCardProps> = ({
     <Pressable
       onPress={handleNotificationPress}
       style={{
-        width: '90%',
+        width: '100%',
         flexDirection: 'row',
         alignItems: 'center',
         gap: 10,
         alignSelf: 'center',
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        padding: 12,
+        marginBottom: 8,
+        shadowColor: '#000',
+        shadowOffset: {
+          width: 0,
+          height: 2,
+        },
+        shadowOpacity: 0.15,
+        shadowRadius: 6,
+        elevation: 6,
       }}>
       <Pressable onPress={() => routeToProfile(notification?.data?.likedByUserId || notification?.data?.userId, notification?.data?.accountType)}>
         {notification?.data?.profilePicture ? (
@@ -277,6 +289,7 @@ const LikedNotificationCard: React.FC<LikedNotificationCardProps> = ({
               borderRadius: 72,
               justifyContent: 'center',
               alignItems: 'center',
+              shadowColor: '#000',
             }}>
             <Text
              style={{
@@ -297,7 +310,7 @@ const LikedNotificationCard: React.FC<LikedNotificationCardProps> = ({
           fontFamily: FontFamilies.medium,
           fontWeight: '400',
           fontSize: 13,
-          width: '70%',
+          flex: 1,
           minHeight: '65%',
           lineHeight: 18,
           color:"#111",
@@ -325,10 +338,12 @@ const LikedNotificationCard: React.FC<LikedNotificationCardProps> = ({
       <TouchableOpacity
         onPress={handleNotificationPress}
         style={{
-          width: '18%',
+          width: 36,
           height: 36,
-          alignItems: 'flex-end',
+          alignItems: 'center',
+          justifyContent: 'center',
           borderRadius: 8,
+          marginLeft: 8,
         }}>
         {renderThumbnail()}
       </TouchableOpacity>
