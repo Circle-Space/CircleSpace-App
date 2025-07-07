@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
     borderWidth: 0,
   },
   textinput: {
-    width: 320,
+    width: '100%',
     height: 48,
     borderRadius: 14,
     padding: 15,
