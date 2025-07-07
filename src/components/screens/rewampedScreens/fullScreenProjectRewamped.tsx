@@ -12,6 +12,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FastImage from 'react-native-fast-image';
+import {
+    PanGestureHandler,
+    PinchGestureHandler,
+    TapGestureHandler,
+    State,
+} from 'react-native-gesture-handler';
 import { Color, FontFamilies, FontSizes, LineHeights } from '../../../styles/constants';
 import { RouteProp, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -73,6 +79,14 @@ const FullScreenProjectRewamped = ({ route }: FullScreenProjectProps) => {
     const flatListRef = useRef<FlatList>(null);
     const dispatch = useDispatch();
 
+    // Zoom state for images
+    const [scale, setScale] = useState(1);
+    const [translateX, setTranslateX] = useState(0);
+    const [translateY, setTranslateY] = useState(0);
+    const [lastScale, setLastScale] = useState(1);
+    const [lastTranslateX, setLastTranslateX] = useState(0);
+    const [lastTranslateY, setLastTranslateY] = useState(0);
+
     // Get Redux state
     const postState = useSelector((state: RootState) =>
         projectId ? state.posts.posts[projectId] : null
@@ -124,6 +138,65 @@ const FullScreenProjectRewamped = ({ route }: FullScreenProjectProps) => {
         setShowUserDetails(!showUserDetails);
     };
 
+    // Pinch gesture handler for zoom
+    const onPinchGestureEvent = useCallback((event: any) => {
+        const newScale = lastScale * event.nativeEvent.scale;
+        setScale(Math.min(Math.max(newScale, 1), 3)); // Limit zoom between 1x and 3x
+    }, [lastScale]);
+
+    const onPinchHandlerStateChange = useCallback((event: any) => {
+        if (event.nativeEvent.oldState === State.ACTIVE) {
+            setLastScale(scale);
+        }
+    }, [scale]);
+
+    // Pan gesture handler for moving zoomed image
+    const onPanGestureEvent = useCallback((event: any) => {
+        if (scale > 1) {
+            const newTranslateX = lastTranslateX + event.nativeEvent.translationX;
+            const newTranslateY = lastTranslateY + event.nativeEvent.translationY;
+            
+            // Limit panning based on zoom level
+            const maxTranslateX = (scale - 1) * Dimensions.get('window').width / 2;
+            const maxTranslateY = (scale - 1) * Dimensions.get('window').height / 2;
+            
+            setTranslateX(Math.min(Math.max(newTranslateX, -maxTranslateX), maxTranslateX));
+            setTranslateY(Math.min(Math.max(newTranslateY, -maxTranslateY), maxTranslateY));
+        }
+    }, [lastTranslateX, lastTranslateY, scale]);
+
+    // Check if we should allow scrolling
+    const shouldAllowScroll = useCallback(() => {
+        return scale <= 1;
+    }, [scale]);
+
+    const onPanHandlerStateChange = useCallback((event: any) => {
+        if (event.nativeEvent.oldState === State.ACTIVE) {
+            setLastTranslateX(translateX);
+            setLastTranslateY(translateY);
+        }
+    }, [translateX, translateY]);
+
+    // Reset zoom when changing items
+    const resetZoom = useCallback(() => {
+        setScale(1);
+        setTranslateX(0);
+        setTranslateY(0);
+        setLastScale(1);
+        setLastTranslateX(0);
+        setLastTranslateY(0);
+    }, []);
+
+    // Double tap to reset zoom
+    const onDoubleTap = useCallback(() => {
+        if (scale > 1) {
+            resetZoom();
+        } else {
+            setScale(2);
+            setLastScale(2);
+        }
+    }, [scale, resetZoom]);
+
     const renderItem = ({ item }: { item: typeof processedItems[0] }) => {
         return (
             <TouchableOpacity
@@ -136,22 +209,54 @@ const FullScreenProjectRewamped = ({ route }: FullScreenProjectProps) => {
                         <ActivityIndicator size="large" color={Color.black} />
                     </View>
                 )}
-                <FastImage
-                    source={{ uri: item.imageUrl }}
-                    style={styles.image}
-                    resizeMode={FastImage.resizeMode.contain}
-                    onLoadStart={() => setLoading(true)}
-                    onLoadEnd={() => setLoading(false)}
-                />
+                <TapGestureHandler
+                    numberOfTaps={2}
+                    onActivated={onDoubleTap}>
+                    <PinchGestureHandler
+                        onGestureEvent={onPinchGestureEvent}
+                        onHandlerStateChange={onPinchHandlerStateChange}>
+                        <PanGestureHandler
+                            onGestureEvent={onPanGestureEvent}
+                            onHandlerStateChange={onPanHandlerStateChange}
+                            enabled={scale > 1}
+                            shouldCancelWhenOutside={false}
+                            activeOffsetX={[-10, 10]}
+                            activeOffsetY={[-10, 10]}>
+                            <View style={styles.imageWrapper}>
+                                <FastImage
+                                    source={{ uri: item.imageUrl }}
+                                    style={[
+                                        styles.image,
+                                        {
+                                            transform: [
+                                                { scale: scale },
+                                                { translateX: translateX },
+                                                { translateY: translateY },
+                                            ],
+                                        },
+                                    ]}
+                                    resizeMode={FastImage.resizeMode.contain}
+                                    onLoadStart={() => setLoading(true)}
+                                    onLoadEnd={() => setLoading(false)}
+                                />
+                            </View>
+                        </PanGestureHandler>
+                    </PinchGestureHandler>
+                </TapGestureHandler>
             </TouchableOpacity>
         );
     };
 
     const handleViewableItemsChanged = useCallback(({ viewableItems }: any) => {
         if (viewableItems.length > 0) {
-            setCurrentIndex(viewableItems[0].index);
+            const newIndex = viewableItems[0].index;
+            if (newIndex !== currentIndex) {
+                setCurrentIndex(newIndex);
+                // Reset zoom when changing items
+                resetZoom();
+            }
         }
-    }, []);
+    }, [currentIndex, resetZoom]);
 
     const isHorizontal = true; // Always horizontal for projects
     const itemLength = Dimensions.get('window').width;
@@ -197,7 +302,7 @@ const FullScreenProjectRewamped = ({ route }: FullScreenProjectProps) => {
 
                 if (isSelf) {
                     // Navigate to the bottom tab named "ProfileRewamp" for self profile
-                    navigation.navigate('BottomBar', {
+                    (navigation as any).navigate('BottomBar', {
                         screen: 'ProfileScreen',
                         params: {
                             isSelf: true
@@ -214,7 +319,7 @@ const FullScreenProjectRewamped = ({ route }: FullScreenProjectProps) => {
         }).catch(error => {
             console.error("Error checking user data:", error);
             // Fallback to other user profile on error
-            routeToOtherUserProfile(navigation, userId, false, token || null);
+            routeToOtherUserProfile(navigation, userId, false, token || null, accountType);
         });
     };
 
@@ -253,6 +358,8 @@ const FullScreenProjectRewamped = ({ route }: FullScreenProjectProps) => {
                         const index = Math.round(contentOffset / itemLength);
                         if (index !== currentIndex) {
                             setCurrentIndex(index);
+                            // Reset zoom when changing items
+                            resetZoom();
                         }
                     }}
                     scrollEventThrottle={16}
@@ -261,8 +368,11 @@ const FullScreenProjectRewamped = ({ route }: FullScreenProjectProps) => {
                         const index = Math.round(contentOffset / itemLength);
                         if (index !== currentIndex) {
                             setCurrentIndex(index);
+                            // Reset zoom when changing items
+                            resetZoom();
                         }
                     }}
+                    scrollEnabled={shouldAllowScroll()}
                 />
 
                 {showUserDetails && currentItem && (
@@ -337,6 +447,12 @@ const styles = StyleSheet.create({
         width: Dimensions.get('window').width,
         height: Dimensions.get('window').height,
         backgroundColor: '#000',
+    },
+    imageWrapper: {
+        width: '100%',
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     image: {
         width: '100%',

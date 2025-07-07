@@ -17,6 +17,12 @@ import Video, {VideoRef} from 'react-native-video';
 import FastImage from 'react-native-fast-image';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {
+  PanGestureHandler,
+  PinchGestureHandler,
+  TapGestureHandler,
+  State,
+} from 'react-native-gesture-handler';
+import {
   Color,
   FontFamilies,
   FontSizes,
@@ -139,10 +145,19 @@ const FullScreenLayout = () => {
   const [currentProjectImageIndex, setCurrentProjectImageIndex] = useState(0);
   const projectFlatListRef = useRef<FlatList>(null);
 
+  // Zoom state for images
+  const [scale, setScale] = useState(1);
+  const [translateX, setTranslateX] = useState(0);
+  const [translateY, setTranslateY] = useState(0);
+  const [lastScale, setLastScale] = useState(1);
+  const [lastTranslateX, setLastTranslateX] = useState(0);
+  const [lastTranslateY, setLastTranslateY] = useState(0);
+
   // Get comment count from Redux
   const reduxCommentCount = useSelector((state: RootState) => {
     const currentItem = items[currentIndex];
-    return currentItem ? state.comment.commentCounts[currentItem.id] || 0 : 0;
+    const itemId = currentItem?.id || currentItem?._id;
+    return itemId ? state.comment.commentCounts[itemId] || 0 : 0;
   });
 
   // Add a memoized current item ID to ensure stability
@@ -466,7 +481,7 @@ const FullScreenLayout = () => {
             const isLikedInRedux = likedPosts[itemId] || false;
             const likeCountInRedux = likeCounts[itemId] || 0;
             const isSavedInRedux = savedPosts[itemId] || false;
-            const commentCountInRedux = reduxCommentCount[itemId] || 0;
+            const commentCountInRedux = reduxCommentCount || 0;
 
             setIsLiked(isLikedInRedux);
             setLikeCount(likeCountInRedux);
@@ -483,6 +498,9 @@ const FullScreenLayout = () => {
               videoRef.current.seek(0);
             }
           }
+
+          // Reset zoom when changing items
+          resetZoom();
 
           setCurrentIndex(newIndex);
         }
@@ -520,7 +538,7 @@ const FullScreenLayout = () => {
           const isLikedInRedux = likedPosts[itemId] || false;
           const likeCountInRedux = likeCounts[itemId] || 0;
           const isSavedInRedux = savedPosts[itemId] || false;
-          const commentCountInRedux = reduxCommentCount[itemId] || 0;
+          const commentCountInRedux = reduxCommentCount || 0;
 
           setIsLiked(isLikedInRedux);
           setLikeCount(likeCountInRedux);
@@ -537,6 +555,9 @@ const FullScreenLayout = () => {
             videoRef.current.seek(0);
           }
         }
+
+        // Reset zoom when changing items
+        resetZoom();
 
         setCurrentIndex(newIndex);
       }
@@ -588,6 +609,65 @@ const FullScreenLayout = () => {
     }
   }, []);
 
+  // Pinch gesture handler for zoom
+  const onPinchGestureEvent = useCallback((event: any) => {
+    const newScale = lastScale * event.nativeEvent.scale;
+    setScale(Math.min(Math.max(newScale, 1), 3)); // Limit zoom between 1x and 3x
+  }, [lastScale]);
+
+  const onPinchHandlerStateChange = useCallback((event: any) => {
+    if (event.nativeEvent.oldState === State.ACTIVE) {
+      setLastScale(scale);
+    }
+  }, [scale]);
+
+  // Pan gesture handler for moving zoomed image
+  const onPanGestureEvent = useCallback((event: any) => {
+    if (scale > 1) {
+      const newTranslateX = lastTranslateX + event.nativeEvent.translationX;
+      const newTranslateY = lastTranslateY + event.nativeEvent.translationY;
+      
+      // Limit panning based on zoom level
+      const maxTranslateX = (scale - 1) * SCREEN_WIDTH / 2;
+      const maxTranslateY = (scale - 1) * SCREEN_HEIGHT / 2;
+      
+      setTranslateX(Math.min(Math.max(newTranslateX, -maxTranslateX), maxTranslateX));
+      setTranslateY(Math.min(Math.max(newTranslateY, -maxTranslateY), maxTranslateY));
+    }
+  }, [lastTranslateX, lastTranslateY, scale]);
+
+  // Check if we should allow scrolling
+  const shouldAllowScroll = useCallback(() => {
+    return scale <= 1;
+  }, [scale]);
+
+  const onPanHandlerStateChange = useCallback((event: any) => {
+    if (event.nativeEvent.oldState === State.ACTIVE) {
+      setLastTranslateX(translateX);
+      setLastTranslateY(translateY);
+    }
+  }, [translateX, translateY]);
+
+  // Reset zoom when changing items
+  const resetZoom = useCallback(() => {
+    setScale(1);
+    setTranslateX(0);
+    setTranslateY(0);
+    setLastScale(1);
+    setLastTranslateX(0);
+    setLastTranslateY(0);
+  }, []);
+
+  // Double tap to reset zoom
+  const onDoubleTap = useCallback(() => {
+    if (scale > 1) {
+      resetZoom();
+    } else {
+      setScale(2);
+      setLastScale(2);
+    }
+  }, [scale, resetZoom]);
+
   const navigateToUserProfile = (userId: string, accountType: string) => {
     if (!userId) {
       return;
@@ -605,7 +685,7 @@ const FullScreenLayout = () => {
 
           if (isSelf) {
             // Navigate to the bottom tab named "ProfileRewamp" for self profile
-            navigation.navigate('BottomBar', {
+            (navigation as any).navigate('BottomBar', {
               screen: 'ProfileScreen',
               params: {
                 isSelf: true,
@@ -635,7 +715,7 @@ const FullScreenLayout = () => {
       .catch(error => {
         console.error('Error checking user data:', error);
         // Fallback to other user profile on error
-        routeToOtherUserProfile(navigation, userId, false, token);
+        routeToOtherUserProfile(navigation, userId, false, token, accountType);
       });
   };
 
@@ -788,13 +868,42 @@ const FullScreenLayout = () => {
             )}
           </View>
         ) : (
-          <FastImage
-            source={{uri: item.imageUrl}}
-            style={styles.image}
-            resizeMode={FastImage.resizeMode.contain}
-            onLoadStart={() => isCurrentItem && setIsLoading(true)}
-            onLoadEnd={() => isCurrentItem && setIsLoading(false)}
-          />
+          <TapGestureHandler
+            numberOfTaps={2}
+            onActivated={onDoubleTap}
+            enabled={isCurrentItem}>
+            <PinchGestureHandler
+              onGestureEvent={onPinchGestureEvent}
+              onHandlerStateChange={onPinchHandlerStateChange}
+              enabled={isCurrentItem}>
+              <PanGestureHandler
+                onGestureEvent={onPanGestureEvent}
+                onHandlerStateChange={onPanHandlerStateChange}
+                enabled={isCurrentItem && scale > 1}
+                shouldCancelWhenOutside={false}
+                activeOffsetX={[-10, 10]}
+                activeOffsetY={[-10, 10]}>
+                <View style={styles.imageContainer}>
+                  <FastImage
+                    source={{uri: item.imageUrl}}
+                    style={[
+                      styles.image,
+                      {
+                        transform: [
+                          { scale: scale },
+                          { translateX: translateX },
+                          { translateY: translateY },
+                        ],
+                      },
+                    ]}
+                    resizeMode={FastImage.resizeMode.contain}
+                    onLoadStart={() => isCurrentItem && setIsLoading(true)}
+                    onLoadEnd={() => isCurrentItem && setIsLoading(false)}
+                  />
+                </View>
+              </PanGestureHandler>
+            </PinchGestureHandler>
+          </TapGestureHandler>
         )}
       </TouchableOpacity>
     );
@@ -922,7 +1031,7 @@ const FullScreenLayout = () => {
         onScroll={handleScroll}
         scrollEventThrottle={16}
         onMomentumScrollEnd={handleMomentumScrollEnd}
-        scrollEnabled={true}
+        scrollEnabled={shouldAllowScroll()}
         directionalLockEnabled={true}
         snapToOffsets={items.map((_, index) => index * SCREEN_HEIGHT)}
         snapToStart={true}
@@ -1116,7 +1225,9 @@ const FullScreenLayout = () => {
         post={{
           _id: projectId,
           title: currentItem?.caption,
-          url: currentItem?.contentUrl,
+          url: Array.isArray(currentItem?.contentUrl) 
+            ? currentItem?.contentUrl[0] 
+            : currentItem?.contentUrl,
           contentType: currentItem?.contentType,
         }}
       />
@@ -1167,6 +1278,12 @@ const styles = StyleSheet.create({
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT,
     backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageContainer: {
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },
