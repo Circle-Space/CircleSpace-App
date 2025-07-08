@@ -102,15 +102,19 @@ const RatingAndReviews: React.FC<RatingAndReviewsProps> = ({ userId, isSelf, pro
           <View style={{ flex: 1 }}>
             <Text style={styles.name}>{item.name}</Text>
             <View style={styles.starsRow}>
-              {[...Array(5)].map((_, i) => (
-                <FontAwesome
-                  key={i}
-                  name={i < item.rating ? 'star' : 'star-o'}
-                  size={16}
-                  color="#FFC107"
-                  style={{ marginRight: 2 }}
-                />
-              ))}
+              <View style={styles.starContainer}>
+                {[1, 2, 3, 4, 5].map((star, index) => (
+                  <Image
+                    key={index}
+                    source={
+                      star <= item.rating
+                        ? require('../../assets/icons/starFilledIcon.png')
+                        : require('../../assets/icons/starUnfilledIcon.png')
+                    }
+                    style={styles.starIcon}
+                  />
+                ))}
+              </View>
               <Text style={styles.time}>{formatTimeAgo(item?.time)}</Text>
             </View>
           </View>
@@ -277,8 +281,16 @@ arrowIcon: {
     alignItems: 'center',
     marginTop: 2,
   },
+  starContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  starIcon: {
+    width: 16,
+    height: 16,
+  },
   time: {
-    color: '#888',
+    color: Color.primarygrey,
     fontSize: 13,
     fontFamily: FontFamilies.regular,
     marginLeft: 8,

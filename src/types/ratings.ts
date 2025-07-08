@@ -32,6 +32,7 @@ export interface RatingStats {
   positiveCount: number;
   negativeCount: number;
   positivePercentage: number;
+  averageStars?: number;
 }
 
 export interface PaginationInfo {

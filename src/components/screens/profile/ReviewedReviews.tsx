@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   FlatList,
 } from 'react-native';
-import { Color, FontFamilies } from '../../../styles/constants';
+import { Color, FontFamilies, FontSizes } from '../../../styles/constants';
 import { useRatings } from '../../../context/RatingContext';
 import { formatTimeAgo } from '../../../utils/dateUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -18,11 +18,10 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { getInitials } from '../../../utils/commonFunctions';
 
 interface ReviewedReviewsProps {
-  onStatsUpdate?: (stats: any) => void;
   route: any;
 }
 
-const ReviewedReviews = ({ onStatsUpdate, route }: ReviewedReviewsProps) => {
+const ReviewedReviews = ({ route }: ReviewedReviewsProps) => {
   const navigation = useNavigation();
   const { reviewedReviews, fetchReviewsGivenByUser, loading, deleteReview } = useRatings();
   console.log("reviewedReviews",reviewedReviews);
@@ -102,7 +101,7 @@ const ReviewedReviews = ({ onStatsUpdate, route }: ReviewedReviewsProps) => {
       
       if (uid === currentUser) {
         // If it's the user's own profile, navigate through BottomBar
-        navigation.navigate('BottomBar', {
+        (navigation as any).navigate('BottomBar', {
           screen: 'ProfileScreen',
           params: {
             isSelf: true
@@ -112,13 +111,13 @@ const ReviewedReviews = ({ onStatsUpdate, route }: ReviewedReviewsProps) => {
         // Check if the profile is personal or professional
         if (accountType === 'professional') {
           // Navigate to business profile screen
-          navigation.navigate('otherBusinessScreen', {
+          (navigation as any).navigate('otherBusinessScreen', {
             userId: uid,
             isSelf: false
           });
         } else {
           // Navigate to personal profile screen
-          navigation.navigate('otherProfileScreen', {
+          (navigation as any).navigate('otherProfileScreen', {
             userId: uid,
             isSelf: false
           });
@@ -141,8 +140,58 @@ const ReviewedReviews = ({ onStatsUpdate, route }: ReviewedReviewsProps) => {
     });
   };
 
+  // Add a function for rendering review text with more/less logic, matching renderAbout
+  const renderReviewText = (note: string, expanded: boolean, toggleExpand: () => void) => {
+    // Count lines and characters
+    const lines = note.split('\n');
+    const hasMoreLines = lines.length > 1;
+    const cleanNote = note.replace(/\n/g, '');
+    const hasMoreChars = cleanNote.length > 90;
+    const shouldShowMore = hasMoreLines || hasMoreChars;
+
+    // Get display text
+    let displayText = note;
+    if (!expanded) {
+      // Limit to 3 lines
+      const limitedLines = lines.slice(0, 1);
+      displayText = limitedLines.join('\n');
+
+      // If still too long, truncate to 135 chars
+      if (cleanNote.length > 90) {
+        let charCount = 0;
+        let truncatedText = '';
+        for (let i = 0; i < displayText.length; i++) {
+          if (displayText[i] === '\n') {
+            truncatedText += '\n';
+          } else if (charCount < 90) {
+            truncatedText += displayText[i];
+            charCount++;
+          }
+        }
+        displayText = truncatedText;
+      }
+    }
+
+    return (
+      <Text style={styles.reviewText} numberOfLines={expanded ? undefined : 2}>
+        {displayText}
+        {shouldShowMore && (
+          <>
+            {!expanded && '... '}
+            <Text
+              style={styles.moreText}
+              onPress={toggleExpand}
+            >
+              {expanded ? ' less' : 'more'}
+            </Text>
+          </>
+        )}
+      </Text>
+    );
+  };
+
   const renderReviewCard = (review: any) => (
-    <TouchableOpacity onPress={() => handleUsernamePress(review.receiver._id,review.receiver.accountType)} key={review._id} style={styles.reviewCard}>
+    <TouchableOpacity key={review._id} style={styles.reviewCard} activeOpacity={1}>
       <View style={styles.reviewHeader}>
         <View style={styles.userInfo}>
           <TouchableOpacity onPress={() => handleUsernamePress(review.receiver._id,review.receiver.accountType)}>
@@ -160,11 +209,11 @@ const ReviewedReviews = ({ onStatsUpdate, route }: ReviewedReviewsProps) => {
           )}
           </TouchableOpacity>
           <View style={styles.userDetails}>
-            <View >
+            <TouchableOpacity onPress={() => handleUsernamePress(review.receiver._id,review.receiver.accountType)}>
               <Text style={styles.userName}>
                 {review.receiver.username}
               </Text>
-            </View>
+            </TouchableOpacity>
             <View style={styles.ratingContainer}>
               <View style={styles.starContainer}>
                 {[1, 2, 3, 4, 5].map((star, index) => (
@@ -172,8 +221,8 @@ const ReviewedReviews = ({ onStatsUpdate, route }: ReviewedReviewsProps) => {
                     key={index}
                     source={
                       star <= review.stars
-                        ? require('../../../assets/icons/starFilled.png')
-                        : require('../../../assets/icons/starUnfilled.png')
+                        ? require('../../../assets/icons/starFilledIcon.png')
+                        : require('../../../assets/icons/starUnfilledIcon.png')
                     }
                     style={styles.starIcon}
                   />
@@ -199,19 +248,13 @@ const ReviewedReviews = ({ onStatsUpdate, route }: ReviewedReviewsProps) => {
           </TouchableOpacity>
         )} */}
       </View>
-      <Text 
-        style={styles.reviewText} 
-        numberOfLines={expandedReviews.has(review._id) ? undefined : 2}
-      >
-        {review.note}
-      </Text>
-      {review?.note?.length > 100 && (
-        <TouchableOpacity onPress={() => toggleReviewExpand(review._id)}>
-          <Text style={styles.moreText}>
-            {expandedReviews.has(review._id) ? 'See less' : 'See more'}
-          </Text>
-        </TouchableOpacity>
-      )}
+      <View>
+        {renderReviewText(
+          review.note,
+          expandedReviews.has(review._id),
+          () => toggleReviewExpand(review._id)
+        )}
+      </View>
     </TouchableOpacity>
   );
 
@@ -261,7 +304,6 @@ const ReviewedReviews = ({ onStatsUpdate, route }: ReviewedReviewsProps) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
   },
   scrollContent: {
     paddingHorizontal: 16,
@@ -299,7 +341,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   userName: {
-    fontSize: 16,
+    fontSize: FontSizes.medium,
     fontFamily: FontFamilies.bold,
     color: '#1E1E1E',
     marginBottom: 4,
@@ -318,8 +360,8 @@ const styles = StyleSheet.create({
     height: 14,
   },
   timeAgo: {
-    fontSize: 14,
-    fontFamily: 'Roboto-Regular',
+    fontSize: FontSizes.small,
+    fontFamily: FontFamilies.regular,
     color: '#6B7280',
   },
   deleteButton: {
@@ -332,15 +374,15 @@ const styles = StyleSheet.create({
     // tintColor: '#FF4D4F',
   },
   reviewText: {
-    fontSize: 14,
-    fontFamily: 'Roboto-Regular',
-    color: '#1E1E1E',
+    fontSize: FontSizes.small,
+    fontFamily: FontFamilies.regular,
+    color: Color.black,
     lineHeight: 20,
   },
   moreText: {
-    fontSize: 14,
-    fontFamily: 'Roboto-Regular',
-    color: '#3897F0',
+    fontSize: FontSizes.small,
+    fontFamily: FontFamilies.regular,
+    color: Color.primarygrey,
     marginTop: 4,
   },
   centerContainer: {
@@ -371,7 +413,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   initialsText: {
-    fontSize: 16,
+    fontSize: FontSizes.medium,
     color: Color.white,
     fontWeight: '600',
     fontFamily: FontFamilies.regular,
