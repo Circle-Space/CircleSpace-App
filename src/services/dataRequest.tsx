@@ -19,7 +19,37 @@ export const get = async (
   token: string
 ) => {
   const url = new URL(`${BASE_URL}/${endpoint}`);
-  // console.log("url :: 22 ::", url);
+  console.log("url :: 22 ::", url);
+  
+  // Append query parameters to the URL
+  // console.log("queryParams :: 19 ::", url);
+  Object.keys(queryParams).forEach((key) =>
+    url.searchParams.append(key, queryParams[key])
+  );
+
+  try {
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`, // Include token in the headers
+      },
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    throw error;
+  }
+};
+
+export const getSearch = async (
+  endpoint: any,
+  queryParams: any = {},
+  token: string
+) => {
+  const url = new URL(`${BASE_URL}/${endpoint}`);
+  console.log("url :: 22 ::", url);
   
   // Append query parameters to the URL
   // console.log("queryParams :: 19 ::", url);

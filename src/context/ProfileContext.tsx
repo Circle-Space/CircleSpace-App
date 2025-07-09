@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { ProfileContextType, ProfileData, SavedCollection, User, FollowersFollowingResponse, Project, Catalog } from '../types/profile';
+import { ProfileContextType, ProfileData, SavedCollection, User, FollowersFollowingResponse, Project, Catalog, Location, LocationResponse } from '../types/profile';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { get, post, del, put } from '../services/dataRequest';
+import { get, post, del, put, getSearch } from '../services/dataRequest';
 import { setSaveStatus, initializeSavedPosts } from '../redux/slices/saveSlice';
 import { useDispatch } from 'react-redux';
 import { Post } from '../types/Posttype';
@@ -38,6 +38,13 @@ export const ProfileProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [catalogs, setCatalogs] = useState<Catalog[]>([]);
   const [catalogsLoading, setCatalogsLoading] = useState(false);
   const [catalogsError, setCatalogsError] = useState<string | null>(null);
+  // Location state
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [locationsLoading, setLocationsLoading] = useState(false);
+  const [locationsError, setLocationsError] = useState<string | null>(null);
+  const [locationsCurrentPage, setLocationsCurrentPage] = useState(1);
+  const [hasMoreLocations, setHasMoreLocations] = useState(true);
+  
   const resetContext = () => {
     setProfile(null);
     setLoading(false);
@@ -62,6 +69,12 @@ export const ProfileProvider: React.FC<{ children: ReactNode }> = ({ children })
     setCatalogs([]);
     setCatalogsLoading(false);
     setCatalogsError(null);
+    // Reset location state
+    setLocations([]);
+    setLocationsLoading(false);
+    setLocationsError(null);
+    setLocationsCurrentPage(1);
+    setHasMoreLocations(true);
   };
   
   const fetchProfile = async (userId: string) => {
@@ -693,6 +706,91 @@ export const ProfileProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   };
 
+  const fetchLocations = async (page: number = 1, limit: number = 500, searchQuery?: string) => {
+    try {
+      setLocationsLoading(true);
+      setLocationsError(null);
+
+      const userToken = await AsyncStorage.getItem('userToken');
+      if (!userToken) {
+        throw new Error('No user token found');
+      }
+
+      // Build query parameters - handle search vs regular endpoint
+      let endpoint;
+      if (searchQuery && searchQuery.trim()) {
+        // Use search endpoint when there's a search query
+        endpoint = `city-state/?search=${encodeURIComponent(searchQuery.trim())}`;
+      } else {
+        // Use regular city endpoint when no search or search is cleared
+        endpoint = `city-state/?page=${page}&limit=${limit}`;
+      }
+
+      console.log('🌍 Fetching locations from endpoint:', endpoint);
+      const response = await getSearch(endpoint, {}, userToken);
+      console.log('🌍 Locations API response:', response);
+
+      if (response?.data?.cities) {
+        const mappedLocations: Location[] = response.data.cities.map((location: any) => ({
+          _id: location._id,
+          City: location.City,
+          State: location.State
+        }));
+
+        if (page === 1) {
+          // First page - replace all locations
+          setLocations(mappedLocations);
+        } else {
+          // Subsequent pages - append to existing locations
+          setLocations(prevLocations => [...prevLocations, ...mappedLocations]);
+        }
+
+        setLocationsCurrentPage(page);
+        setHasMoreLocations(response.data.pagination.hasNextPage);
+
+        console.log('✅ Locations loaded successfully:', {
+          count: mappedLocations.length,
+          page,
+          hasMore: response.data.pagination.hasNextPage,
+          searchQuery: searchQuery || 'none',
+          totalPages: response.data.pagination.totalPages,
+          totalCities: response.data.pagination.totalCities,
+          endpoint: endpoint
+        });
+
+        return {
+          locations: mappedLocations,
+          totalPages: response.data.pagination.totalPages || 1,
+          currentPage: response.data.pagination.currentPage || page,
+          totalLocations: response.data.pagination.totalCities || 0,
+          hasMore: response.data.pagination.hasNextPage
+        };
+      } else {
+        if (page === 1) {
+          setLocations([]);
+        }
+        setHasMoreLocations(false);
+        
+        console.log('⚠️ No locations found in response');
+        
+        return {
+          locations: [],
+          totalPages: 1,
+          currentPage: page,
+          totalLocations: 0,
+          hasMore: false
+        };
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred';
+      setLocationsError(errorMessage);
+      console.error('❌ Error fetching locations:', error);
+      return null;
+    } finally {
+      setLocationsLoading(false);
+    }
+  };
+
   return (
     <ProfileContext.Provider value={{ 
       profile, 
@@ -734,6 +832,13 @@ export const ProfileProvider: React.FC<{ children: ReactNode }> = ({ children })
       catalogsLoading,
       catalogsError,
       deleteCatalog,
+      // Location functionality
+      locations,
+      fetchLocations,
+      locationsLoading,
+      locationsError,
+      locationsCurrentPage,
+      hasMoreLocations,
       resetContext, 
     }}>
       {children}

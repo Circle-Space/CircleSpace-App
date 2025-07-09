@@ -6,6 +6,20 @@ export interface ProfileStats {
   following: number;
 }
 
+export interface Location {
+  _id: string;
+  City: string;
+  State: string;
+}
+
+export interface LocationResponse {
+  locations: Location[];
+  totalPages: number;
+  currentPage: number;
+  totalLocations: number;
+  hasMore: boolean;
+}
+
 export interface ProfileData {
   _id: string;
   name: string;
@@ -187,6 +201,13 @@ export interface ProfileContextType {
   catalogsLoading: boolean;
   catalogsError: string | null;
   deleteCatalog: (catalogId: string) => Promise<{ success: boolean; message: string }>;
+  // Location functionality
+  locations: Location[];
+  fetchLocations: (page?: number, limit?: number, searchQuery?: string) => Promise<LocationResponse | null>;
+  locationsLoading: boolean;
+  locationsError: string | null;
+  locationsCurrentPage: number;
+  hasMoreLocations: boolean;
   resetContext: any;
 }
 

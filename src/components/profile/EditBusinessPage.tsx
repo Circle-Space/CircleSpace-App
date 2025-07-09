@@ -8,7 +8,8 @@ import WebIcon from '../../assets/profile/businessPage/web.png';
 import VideoIcon from '../../assets/profile/editProfile/videoIcon.png';
 import ArrowRightIcon from '../../assets/profile/editProfile/arrowRightIcon.png';
 import { ProfileContext } from '../../context/ProfileContext';
-import cityData from '../datasets/citydata';
+import { useLocations } from '../../hooks/useLocations';
+import { Location } from '../../types/profile';
 import AWS from 'aws-sdk';
 import ImagePicker from 'react-native-image-crop-picker';
 import { getInitials } from '../../utils/commonFunctions';
@@ -65,6 +66,16 @@ const EditBusinessPage = ({ route, navigation }: any) => {
   const { initial } = route.params;
   console.log("initial", initial);
   const { updateProfile } = useContext(ProfileContext);
+  const { 
+    locations, 
+    locationsLoading, 
+    loadLocations, 
+    searchLocations, 
+    loadMoreLocations,
+    hasMoreLocations,
+    getLocationDisplayName 
+  } = useLocations();
+  
   const [profilePic, setProfilePic] = useState(initial.profilePic || '');
   const [name, setName] = useState(initial.name || '');
   const [username, setUsername] = useState(initial.username || '');
@@ -74,6 +85,7 @@ const EditBusinessPage = ({ route, navigation }: any) => {
   const [gstin, setGstin] = useState(initial.gstin || '');
   const [gstinError, setGstinError] = useState('');
   const [location, setLocation] = useState(initial.city || '');
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [locationDropdown, setLocationDropdown] = useState(false);
   const [locationSearch, setLocationSearch] = useState('');
   const [bio, setBio] = useState(initial.bio || '');
@@ -106,30 +118,54 @@ const EditBusinessPage = ({ route, navigation }: any) => {
   });
   const [showValidationAlert, setShowValidationAlert] = useState(false);
   const [validationAlertMsg, setValidationAlertMsg] = useState('');
-  // Memoize filtered locations
-  const filteredLocations = useMemo(() => {
-    return cityData.filter(l => 
-      l.City.toLowerCase().includes(locationSearch.toLowerCase())
-    );
-  }, [locationSearch]);
 
-  const renderLocationItem = ({ item, index }: { item: any; index: number }) => (
+  // Load initial locations when component mounts
+  useEffect(() => {
+    loadLocations();
+  }, []);
+
+  // Handle location search - always call API
+  const handleLocationSearch = useCallback(
+    debounce(async (searchQuery: string) => {
+      console.log('🔍 Location search triggered:', searchQuery);
+      // Always call API - don't filter locally
+      await searchLocations(searchQuery);
+    }, 300),
+    [searchLocations]
+  );
+
+  // Handle load more locations with debouncing
+  const handleLoadMoreLocations = useCallback(
+    debounce(async () => {
+      if (hasMoreLocations && !locationsLoading) {
+        console.log('📄 Loading more locations on scroll');
+        await loadMoreLocations();
+      }
+    }, 200),
+    [hasMoreLocations, locationsLoading, loadMoreLocations]
+  );
+
+  // Use locations directly from API - no local filtering
+  const displayLocations = locations;
+
+  const renderLocationItem = ({ item, index }: { item: Location; index: number }) => (
     <TouchableOpacity
-      key={item.City}
+      key={item._id}
       style={[
         styles.dropdownOption,
         location === item.City && styles.dropdownOptionSelected,
-        index === filteredLocations.length - 1 && { borderBottomWidth: 0 },
+        index === displayLocations.length - 1 && { borderBottomWidth: 0 },
       ]}
       onPress={() => {
         setLocation(item.City);
         setCity(item.City);
+        setSelectedLocation(item);
         setLocationDropdown(false);
         setLocationSearch('');
       }}
     >
       <Text style={[styles.dropdownOptionText, location === item.City && styles.dropdownOptionTextSelected]}>
-        {item.City}, {item.State}
+        {getLocationDisplayName(item)}
       </Text>
     </TouchableOpacity>
   );
@@ -549,31 +585,67 @@ const EditBusinessPage = ({ route, navigation }: any) => {
                   <Image source={require('../../assets/profile/editProfile/searchIcon.png')} style={{ width: 20, height: 20, marginRight: 8 }} />
                   <TextInput
                     style={styles.searchInput}
-                    placeholder="Search"
+                    placeholder="Search locations..."
                     placeholderTextColor="#888"
                     value={locationSearch}
-                    onChangeText={setLocationSearch}
+                    onChangeText={(text) => {
+                      setLocationSearch(text);
+                      if (text.trim()) {
+                        // When typing - use search endpoint
+                        handleLocationSearch(text);
+                      } else {
+                        // When search is cleared - load initial cities
+                        loadLocations();
+                      }
+                    }}
                   />
+                  {locationsLoading && (
+                    <ActivityIndicator size="small" color="#007AFF" style={{ marginLeft: 8 }} />
+                  )}
                 </View>
-                <FlatList
-                  data={filteredLocations}
-                  renderItem={renderLocationItem}
-                  keyExtractor={item => item.City}
-                  keyboardShouldPersistTaps="handled"
-                  initialNumToRender={10}
-                  maxToRenderPerBatch={10}
-                  windowSize={5}
-                  removeClippedSubviews={true}
-                  getItemLayout={(data, index) => ({
-                    length: 50,
-                    offset: 50 * index,
-                    index,
-                  })}
-                  style={{ maxHeight: 200 }}
-                  contentContainerStyle={{ paddingBottom: 4 }}
-                  nestedScrollEnabled={true}
-                  scrollEnabled={true}
-                />
+                {locationsLoading && displayLocations.length === 0 ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#007AFF" />
+                    <Text style={styles.loadingText}>Loading locations...</Text>
+                  </View>
+                ) : (
+                  <FlatList
+                    data={displayLocations}
+                    renderItem={renderLocationItem}
+                    keyExtractor={item => item._id}
+                    keyboardShouldPersistTaps="handled"
+                    initialNumToRender={10}
+                    maxToRenderPerBatch={10}
+                    windowSize={5}
+                    removeClippedSubviews={true}
+                    getItemLayout={(data, index) => ({
+                      length: 50,
+                      offset: 50 * index,
+                      index,
+                    })}
+                    style={{ maxHeight: 200 }}
+                    contentContainerStyle={{ paddingBottom: 4 }}
+                    nestedScrollEnabled={true}
+                    scrollEnabled={true}
+                    onEndReached={handleLoadMoreLocations}
+                    onEndReachedThreshold={0.5}
+                    ListFooterComponent={() => (
+                      locationsLoading && hasMoreLocations ? (
+                        <View style={styles.loadingContainer}>
+                          <ActivityIndicator size="small" color="#007AFF" />
+                          <Text style={styles.loadingText}>Loading more locations...</Text>
+                        </View>
+                      ) : null
+                    )}
+                    ListEmptyComponent={() => (
+                      <View style={styles.emptyState}>
+                        <Text style={styles.emptyStateText}>
+                          {locationSearch.trim() ? 'No locations found' : 'No locations available'}
+                        </Text>
+                      </View>
+                    )}
+                  />
+                )}
               </View>
             )}
           </View>
@@ -1049,6 +1121,27 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 12,
     top: 38,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#888',
+    fontSize: 14,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  emptyStateText: {
+    color: '#888',
+    fontSize: 14,
   },
 });
 
