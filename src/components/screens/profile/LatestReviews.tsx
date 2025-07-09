@@ -147,7 +147,7 @@ const LatestReviews = ({ userId, route }: LatestReviewsProps) => {
       note = typeof note === 'string' ? note : '';
       // Count lines and characters
       const lines = note.split('\n');
-      const hasMoreLines = lines.length > 1;
+      const hasMoreLines = lines.length > 2;
       const cleanNote = note.replace(/\n/g, '');
       const hasMoreChars = cleanNote.length > 90;
       const shouldShowMore = hasMoreLines || hasMoreChars;
@@ -156,7 +156,7 @@ const LatestReviews = ({ userId, route }: LatestReviewsProps) => {
       let displayText = note;
       if (!expanded) {
         // Limit to 3 lines
-        const limitedLines = lines.slice(0, 1);
+        const limitedLines = lines.slice(0, 2);
         displayText = limitedLines.join('\n');
   
         // If still too long, truncate to 135 chars
@@ -333,8 +333,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 0,
-    paddingBottom: 16,
+    paddingVertical: 16,
   },
   ratingSection: {
     marginBottom: 0,
