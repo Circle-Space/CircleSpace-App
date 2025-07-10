@@ -92,7 +92,7 @@ export default function RatingsAndReviewsView({route}: any) {
     profileId,
     hasReviewed
   });
-  const [activeTab, setActiveTab] = useState<TabType>('Latest');
+  const [activeTab, setActiveTab] = useState<TabType>(route.params?.initialTab || 'Latest');
 
   useEffect(() => {
     checkUserPermission();

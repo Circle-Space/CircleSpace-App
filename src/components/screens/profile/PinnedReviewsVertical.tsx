@@ -135,7 +135,7 @@ const PinnedReviewsVertical = ({ userId, route }: PinnedReviewsVerticalProps) =>
         const lines = note.split('\n');
         const hasMoreLines = lines.length > 2;
         const cleanNote = note.replace(/\n/g, '');
-        const hasMoreChars = cleanNote.length > 90;
+        const hasMoreChars = cleanNote.length > 80;
         const shouldShowMore = hasMoreLines || hasMoreChars;
     
         // Get display text
@@ -146,13 +146,13 @@ const PinnedReviewsVertical = ({ userId, route }: PinnedReviewsVerticalProps) =>
           displayText = limitedLines.join('\n');
     
           // If still too long, truncate to 135 chars
-          if (cleanNote.length > 90) {
+          if (cleanNote.length > 80) {
             let charCount = 0;
             let truncatedText = '';
             for (let i = 0; i < displayText.length; i++) {
               if (displayText[i] === '\n') {
                 truncatedText += '\n';
-              } else if (charCount < 90) {
+              } else if (charCount < 80) {
                 truncatedText += displayText[i];
                 charCount++;
               }

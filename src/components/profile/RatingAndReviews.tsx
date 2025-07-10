@@ -70,7 +70,59 @@ const RatingAndReviews: React.FC<RatingAndReviewsProps> = ({ userId, isSelf, pro
     } catch (error) {
       console.error('Error routing to profile:', error);
     }
-  };
+    };
+
+    const renderReviewText = (note: string | undefined, expanded: boolean, toggleExpand: () => void) => {
+      // Ensure note is always a string
+      note = typeof note === 'string' ? note : '';
+      // Count lines and characters
+      const lines = note.split('\n');
+      const hasMoreLines = lines.length > 2;
+      const cleanNote = note.replace(/\n/g, '');
+      const hasMoreChars = cleanNote.length > 60;
+      const shouldShowMore = hasMoreLines || hasMoreChars;
+  
+      // Get display text
+      let displayText = note;
+      if (!expanded) {
+        // Limit to 3 lines
+        const limitedLines = lines.slice(0, 2);
+        displayText = limitedLines.join('\n');
+  
+        // If still too long, truncate to 135 chars
+        if (cleanNote.length > 60) {
+          let charCount = 0;
+          let truncatedText = '';
+          for (let i = 0; i < displayText.length; i++) {
+            if (displayText[i] === '\n') {
+              truncatedText += '\n';
+            } else if (charCount < 60) {
+              truncatedText += displayText[i];
+              charCount++;
+            }
+          }
+          displayText = truncatedText;
+        }
+      }
+  
+      return (
+        <Text style={styles.reviewText} numberOfLines={expanded ? undefined : 2}>
+          {displayText}
+          {shouldShowMore && (
+            <>
+              {!expanded && '... '}
+              <Text
+                style={styles.moreText}
+                onPress={toggleExpand}
+              >
+                {expanded ? ' less' : 'more'}
+              </Text>
+            </>
+          )}
+        </Text>
+      );
+    };
+
   // Map reviews from context to the UI format
   const mappedReviews = reviews.map(r => ({
     id: r._id,
@@ -82,6 +134,8 @@ const RatingAndReviews: React.FC<RatingAndReviewsProps> = ({ userId, isSelf, pro
     pinned: r.isPinned,
     giver:r?.giver
   }));
+
+  const threeReviews = mappedReviews.filter(r => r.pinned).slice(0, 3);
 
   const renderReview = ({ item }: { item: any }) => {
     const showInitials = !item.avatar;
@@ -124,7 +178,9 @@ const RatingAndReviews: React.FC<RatingAndReviewsProps> = ({ userId, isSelf, pro
             )}
           </View> */}
         </View>
-        <Text style={styles.reviewText} numberOfLines={2} ellipsizeMode="tail">{item.text}</Text>
+        <View>
+          {renderReviewText(item.text, false, () => {navigation.navigate('RatingsAndReviews', { profile, initialTab: 'Pinned'})})}
+        </View>
       </TouchableOpacity>
     );
   };
@@ -155,7 +211,7 @@ const RatingAndReviews: React.FC<RatingAndReviewsProps> = ({ userId, isSelf, pro
       <Text style={styles.subTitle}>{stats?.totalVisible || 0} Ratings</Text>
       {mappedReviews.length > 0 ? (
         <FlatList
-          data={mappedReviews.filter(r => r.pinned)}
+          data={threeReviews}
           horizontal
           showsHorizontalScrollIndicator={false}
           keyExtractor={item => item.id}
@@ -288,6 +344,11 @@ arrowIcon: {
   starIcon: {
     width: 16,
     height: 16,
+  },
+  moreText: {
+    color: Color.primarygrey,
+    fontSize: 13,
+    fontFamily: FontFamilies.regular,
   },
   time: {
     color: Color.primarygrey,
