@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import {Color, FontFamilies} from '../../../styles/constants';
+import {Color, FontFamilies, FontSizes} from '../../../styles/constants';
 import {useNavigation} from '@react-navigation/native';
 import {get} from '../../../services/dataRequest';
 import {useRatings} from '../../../context/RatingContext';
@@ -116,7 +116,7 @@ export default function RatingsAndReviewsView({route}: any) {
     if (user && reviewedReviews.length > 0 && profileId) {
       const hasUserReviewed = reviewedReviews.some(
         review => {
-          return review?.giver === user._id;
+          return review?.giver?._id === user._id;
         }
       );
       setHasReviewed(hasUserReviewed);
@@ -153,48 +153,84 @@ export default function RatingsAndReviewsView({route}: any) {
     }
   };
 
-  const renderRatingSection = () => (
-    <View style={styles.ratingSection}>
-      <View style={styles.ratingContainer}>
-        <Text style={styles.ratingNumber}>5.0</Text>
-        <View style={styles.ratingRight}>
-          <View style={styles.starContainer}>
-            {[1, 2, 3, 4, 5].map((star, index) => (
-              <Image
-                key={index}
-                source={require('../../../assets/icons/starFilled.png')}
-                style={styles.starIcon}
-              />
-            ))}
+  const renderRatingSection = () => {
+    const average = stats?.averageStars || 0;
+    const totalRatings = stats?.totalVisible || 0;
+    const starSize = 18;
+    const starStyle = { fontSize: starSize, marginHorizontal: 1 };
+  
+    return (
+      <View style={{width: '100%', alignSelf: 'center', paddingHorizontal: 20}}>
+        <View style={styles.ratingSection}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ alignItems: 'center',justifyContent: 'center' }}>
+              <Text style={styles.ratingNumber}>{average.toFixed(1)}</Text>
+              <View style={{ flexDirection: 'row', marginTop: 8 }}>
+                {[...Array(5)].map((_, i) => {
+                  const starFill = Math.min(Math.max(average - i, 0), 1); // value between 0 and 1
+                  return (
+                    <View
+                      key={i}
+                      style={{
+                        position: 'relative',
+                        width: starSize,
+                        height: starSize,
+                        marginHorizontal: 1,
+                      }}>
+                      {/* Background gray star */}
+                      <Image
+                        source={require('../../../assets/icons/starUnfilledIcon.png')}
+                        style={{
+                          width: starSize,
+                          height: starSize,
+                          position: 'absolute',
+                        }}
+                        resizeMode="contain"
+                      />
+                      {/* Filled part */}
+                      <View
+                        style={{
+                          width: starSize * starFill,
+                          height: starSize,
+                          overflow: 'hidden',
+                          position: 'absolute',
+                        }}>
+                        <Image
+                          source={require('../../../assets/icons/starFilledIcon.png')}
+                          style={{ width: starSize, height: starSize }}
+                          resizeMode="contain"
+                        />
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+            <View style={{ alignItems: 'center',justifyContent: 'center' }}>
+              <Text style={styles.ratingNumber}>{totalRatings}</Text>
+              <Text style={{ fontSize: FontSizes.medium, fontFamily: FontFamilies.medium, color: '#1E1E1E', marginTop: 4 }}>Ratings</Text>
+            </View>
           </View>
-          <Text style={styles.ratingCount}>100 Ratings</Text>
         </View>
+        {/* Separation border */}
+        <View style={{width: '100%', height: 1, backgroundColor: '#EDEDED', marginHorizontal: 0, marginTop: 4 }} />
       </View>
-    </View>
-  );
+    );
+  };
+  
 
   const renderTabs = () => (
-    <View style={styles.tabContainer}>
-      {(['Pinned', 'Latest', 'Reviewed'] as TabType[]).map(
-        (tab, index, array) => (
-          <TouchableOpacity
-            key={tab}
-            style={[
-              styles.tab,
-              activeTab === tab && styles.activeTab,
-              index === array.length - 1 && {marginRight: 0},
-            ]}
-            onPress={() => setActiveTab(tab)}>
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === tab && styles.activeTabText,
-              ]}>
-              {tab}
-            </Text>
-          </TouchableOpacity>
-        ),
-      )}
+    <View style={styles.tabContainerCustom}>
+      {(['Pinned', 'Latest', 'Reviewed'] as TabType[]).map((tab, index) => (
+        <TouchableOpacity
+          key={tab}
+          style={[styles.tabCustom, activeTab === tab && styles.activeTabCustom]}
+          onPress={() => setActiveTab(tab)}>
+          <Text style={[styles.tabTextCustom]}>
+            {tab}
+          </Text>
+        </TouchableOpacity>
+      ))}
     </View>
   );
 
@@ -242,11 +278,6 @@ export default function RatingsAndReviewsView({route}: any) {
         return (
           <PinnedReviewsVertical
             userId={profileId}
-            onStatsUpdate={newStats => {
-              if (stats !== newStats) {
-                newStats;
-              }
-            }}
             route={cleanedProfile}
           />
         );
@@ -254,38 +285,24 @@ export default function RatingsAndReviewsView({route}: any) {
         return (
           <LatestReviews
             userId={profileId}
-            onStatsUpdate={newStats => {
-              if (stats !== newStats) {
-                newStats;
-              }
-            }}
             route={cleanedProfile}
           />
         );
       case 'Reviewed':
         return (
           <ReviewedReviews
-            onStatsUpdate={newStats => {
-              if (stats !== newStats) {
-                newStats;
-              }
-            }}
             route={cleanedProfile}
           />
         );
       default:
-        return (
-          <>
-            {renderRatingSection()}
-            {/* Other tab content */}
-          </>
-        );
+        return null;
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
+        {renderRatingSection()}
         {renderTabs()}
         {renderContent()}
       </ScrollView>
@@ -331,8 +348,8 @@ const styles = StyleSheet.create({
     width: 24,
   },
   ratingSection: {
-    paddingHorizontal: 16,
     paddingVertical: 24,
+    backgroundColor: '#fff',
   },
   ratingContainer: {
     flexDirection: 'row',
@@ -340,10 +357,10 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   ratingNumber: {
-    fontSize: 48,
-    fontFamily: FontFamilies.bold,
-    color: '#1E1E1E',
-    lineHeight: 56,
+    fontSize: 50,
+    fontFamily: FontFamilies.semibold,
+    color: Color.black,
+    lineHeight: 60,
   },
   ratingRight: {
     alignItems: 'flex-end',
@@ -483,5 +500,46 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Roboto-Regular',
     color: '#FF0000',
+  },
+  tabContainerCustom: {
+    width: '80%',
+    alignSelf: 'center',
+    flexDirection: 'row',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 18,
+    marginHorizontal: 16,
+    marginTop: 24,
+    marginBottom: 8,
+    padding: 10,
+    height: 54,
+    alignItems: 'center',
+    // shadowColor: '#000',
+    // shadowOffset: { width: 0, height: 2 },
+    // shadowOpacity: 0.04,
+    // shadowRadius: 8,
+    // elevation: 4,
+  },
+  tabCustom: {
+    flex: 1,
+    height: 36,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+    marginHorizontal: 2,
+  },
+  activeTabCustom: {
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 4,
+    zIndex: 1,
+  },
+  tabTextCustom: {
+    fontSize: FontSizes.medium,
+    fontFamily: FontFamilies.medium,
+    color: Color.black,
   },
 });
