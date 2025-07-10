@@ -142,9 +142,9 @@ const RatingAndReviews: React.FC<RatingAndReviewsProps> = ({ userId, isSelf, pro
     const initials = getInitials(item.name);
 
     return (
-      <TouchableOpacity onPress={() => handleUsernamePress(item.giver._id,item.giver.accountType)}  style={styles.reviewCard}>
+      <TouchableOpacity activeOpacity={1}  style={styles.reviewCard}>
         <View style={styles.reviewHeader}>
-          <View style={styles.avatarContainer}>
+          <TouchableOpacity onPress={() => handleUsernamePress(item.giver._id,item.giver.accountType)} style={styles.avatarContainer}>
             {showInitials ? (
               <View style={[styles.avatar, styles.initialsContainer]}>
                 <Text style={styles.initialsText}>{initials}</Text>
@@ -152,9 +152,11 @@ const RatingAndReviews: React.FC<RatingAndReviewsProps> = ({ userId, isSelf, pro
             ) : (
               <Image source={{ uri: item.avatar }} style={styles.avatar} />
             )}
-          </View>
+          </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={styles.name}>{item.name}</Text>
+            <TouchableOpacity onPress={() => handleUsernamePress(item.giver._id,item.giver.accountType)} style={styles.name}>
+              <Text style={styles.name}>{item.name}</Text>
+            </TouchableOpacity>
             <View style={styles.starsRow}>
               <View style={styles.starContainer}>
                 {[1, 2, 3, 4, 5].map((star, index) => (
